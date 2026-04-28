@@ -131,8 +131,8 @@
                 </td>
                 <td class="py-3 px-4">
                     <div>
-                        <p class="font-semibold">{{ $order->user->name ?? 'N/A' }}</p>
-                        <p class="text-xs text-gray-400">{{ $order->user->email ?? 'N/A' }}</p>
+                        <p class="font-semibold">{{ $order->participant->name ?? 'N/A' }}</p>
+                        <p class="text-xs text-gray-400">{{ $order->participant->email ?? 'N/A' }}</p>
                     </div>
                 </td>
                 <td class="py-3 px-4">
