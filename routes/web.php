@@ -4,121 +4,88 @@ use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\EventGalleryController;
 use App\Http\Controllers\ParticipantController;
 use App\Http\Controllers\UserController;
 
+/*
+|--------------------------------------------------------------------------
+| Guest Routes (Not Authenticated)
+|--------------------------------------------------------------------------
+*/
 Route::middleware('guest')->group(function () {
     Route::get('/', [UserController::class, 'login'])->name('login');
     Route::post('/auth', [UserController::class, 'auth'])
         ->middleware('throttle:5,1')
-        ->name('auth');
+        ->name('login.auth');
 });
 
-Route::middleware(['auth','role:admin,organizer'])->group(function () {
+/*
+|--------------------------------------------------------------------------
+| Admin & Organizer Routes
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:admin,organizer'])->group(function () {
 
-    Route::get('/dashboard', function () {
-        return view('dashboard.index');
-    })->name('dashboard.index');
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
     
-    Route::resource('events', EventController::class, [
-        'names' => [
-            'index' => 'events.index',
-            'create' => 'events.create',
-            'store' => 'events.store',
-            'show' => 'events.show',
-            'edit' => 'events.edit',
-            'update' => 'events.update',
-            'destroy' => 'events.destroy',
-        ]
-    ]);
-
-    Route::resource('categories', CategoryController::class, [
-        'names' => [
-            'index' => 'categories.index',
-            'create' => 'categories.create',
-            'store' => 'categories.store',
-            'show' => 'categories.show',
-            'edit' => 'categories.edit',
-            'update' => 'categories.update',
-            'destroy' => 'categories.destroy',
-        ]
-    ]);
-
-    Route::resource('orders', OrderController::class, [
-        'names' => [
-            'index' => 'orders.index',
-            'store' => 'orders.store',
-            'show' => 'orders.show',
-            'update' => 'orders.update',
-            'destroy' => 'orders.destroy',
-        ]
-    ])->except(['create','edit']);
+    // Events - Full CRUD
+    Route::resource('events', EventController::class);
+    
+    // Categories - Full CRUD
+    Route::resource('categories', CategoryController::class);
+    
+    // Orders - No create/edit forms
+    Route::resource('orders', OrderController::class)->except(['create', 'edit']);
+    
+    // Order Additional Routes
     Route::patch('orders/{order}/verify-payment', [OrderController::class, 'verifyPayment'])->name('orders.verify-payment');
-    Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');  // ← Tambahkan ini
+    Route::patch('orders/{order}/cancel', [OrderController::class, 'cancel'])->name('orders.cancel');
     Route::post('orders/{order}/update-payment', [OrderController::class, 'updatePaymentProof'])->name('orders.update-payment');
     Route::get('orders/export/csv', [OrderController::class, 'export'])->name('orders.export');
-
-    Route::resource('payments', PaymentController::class, [
-        'names' => [
-            'index' => 'payments.index',
-            'store' => 'payments.store',
-            'show' => 'payments.show',
-            'update' => 'payments.update',
-            'destroy' => 'payments.destroy',
-        ]
-    ])->except(['create','edit']);
-
-    Route::resource('galleries', EventGalleryController::class, [
-        'names' => [
-            'index' => 'galleries.index',
-            'create' => 'galleries.create',
-            'store' => 'galleries.store',
-            'show' => 'galleries.show',
-            'edit' => 'galleries.edit',
-            'update' => 'galleries.update',
-            'destroy' => 'galleries.destroy',
-        ]
-    ])
-    ->parameters([
-        'galleries' => 'eventGallery' // Ubah parameter name dari 'gallery' menjadi 'eventGallery'
-    ]);
-
-    // Tambahkan route untuk delete image
+    
+    // Order Export PDF
+    Route::get('orders/{order}/export-invoice', [OrderController::class, 'exportInvoicePdf'])->name('orders.export-invoice');
+    Route::get('orders/export/all/pdf', [OrderController::class, 'exportAllPdf'])->name('orders.export-all-pdf');
+    
+    // Payments
+    Route::resource('payments', PaymentController::class)->except(['create', 'edit']);
+    Route::patch('payments/{payment}/verify', [PaymentController::class, 'verify'])->name('payments.verify');
+    
+    // Galleries
+    Route::resource('galleries', EventGalleryController::class)
+        ->parameters(['galleries' => 'eventGallery']);
+    
     Route::delete('galleries/{eventGallery}/delete-image/{imageIndex}', [EventGalleryController::class, 'deleteImage'])
         ->name('galleries.delete-image');
-
     
+    // Event Export PDF
+    Route::get('events/{event}/export-brochure', [EventController::class, 'exportBrochurePdf'])->name('events.export-brochure');
+    Route::get('events/export/all/pdf', [EventController::class, 'exportAllPdf'])->name('events.export-all-pdf');
     
+    // Logout
     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 });
-Route::middleware(['auth','role:admin'])->group(function () {
 
+/*
+|--------------------------------------------------------------------------
+| Admin Only Routes
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'role:admin'])->group(function () {
     
-     Route::resource('users', UserController::class, [
-        'names' => [
-            'index' => 'users.index',
-            'show' => 'users.show',
-            'edit' => 'users.edit',
-            'update' => 'users.update',
-            'destroy' => 'users.destroy',
-        ]
-    ]);
-
-    Route::resource('participants', ParticipantController::class, [
-        'names' => [
-            'index' => 'participants.index',
-            'show' => 'participants.show',
-            'create' => 'participants.create',
-            'store' => 'participants.store',
-            'edit' => 'participants.edit',
-            'update' => 'participants.update',
-            'destroy' => 'participants.destroy',
-        ]
-    ]);
-     Route::get('participants/{participant}/regenerate-hash', [ParticipantController::class, 'regenerateHashId'])
+    // Users Management
+    Route::resource('users', UserController::class);
+    
+    // Participants Management
+    Route::resource('participants', ParticipantController::class);
+    
+    // Participant Additional Routes
+    Route::get('participants/{participant}/regenerate-hash', [ParticipantController::class, 'regenerateHashId'])
         ->name('participants.regenerate-hash');
     
     Route::post('participants/{participant}/toggle-status', [ParticipantController::class, 'toggleStatus'])
@@ -129,4 +96,11 @@ Route::middleware(['auth','role:admin'])->group(function () {
     
     Route::get('participants/search', [ParticipantController::class, 'search'])
         ->name('participants.search');
+    
+    // Participant Export PDF (Admin Only)
+    Route::get('participants/{participant}/export-pdf', [ParticipantController::class, 'exportPdf'])
+        ->name('participants.export-pdf');
+    
+    Route::get('participants/export/all/pdf', [ParticipantController::class, 'exportAllPdf'])
+        ->name('participants.export-all-pdf');
 });

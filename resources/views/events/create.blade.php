@@ -38,9 +38,9 @@
                 <label class="block text-gray-300 mb-2">Kategori *</label>
                 <select name="category_id" 
                         class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500 @error('category_id') border-red-500 @enderror">
-                    <option value="">Pilih Kategori</option>
+                    <option value=""  class="text-black">Pilih Kategori</option>
                     @foreach($categories as $category)
-                        <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
+                        <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}  class="text-black">
                             {{ $category->name }}
                         </option>
                     @endforeach

@@ -36,9 +36,9 @@
                 <select name="event_id" id="event_id" 
                         class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 @error('event_id') border-red-500 @enderror"
                         required>
-                    <option value="">-- Pilih Event --</option>
+                    <option value="" class="text-black">-- Pilih Event --</option>
                     @foreach($events as $event)
-                        <option value="{{ $event->id }}" {{ old('event_id') == $event->id ? 'selected' : '' }}>
+                        <option value="{{ $event->id }}" {{ old('event_id') == $event->id ? 'selected' : '' }} class="text-black">
                             {{ $event->title }} - {{ $event->start_date->format('d M Y') }}
                         </option>
                     @endforeach

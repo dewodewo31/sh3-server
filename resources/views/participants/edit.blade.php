@@ -91,8 +91,8 @@
                     <select name="gender" 
                             class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 @error('gender') border-red-500 @enderror"
                             required>
-                        <option value="male" {{ old('gender', $participant->gender) == 'male' ? 'selected' : '' }}>Male</option>
-                        <option value="female" {{ old('gender', $participant->gender) == 'female' ? 'selected' : '' }}>Female</option>
+                        <option value="male" {{ old('gender', $participant->gender) == 'male' ? 'selected' : '' }} class="text-black">Male</option>
+                        <option value="female" {{ old('gender', $participant->gender) == 'female' ? 'selected' : '' }} class="text-black">Female</option>
                     </select>
                     @error('gender')
                         <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
@@ -115,8 +115,8 @@
             <div class="mb-4">
                 <label class="block text-gray-300 mb-2 font-semibold">Status</label>
                 <select name="status" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500">
-                    <option value="active" {{ old('status', $participant->status) == 'active' ? 'selected' : '' }}>Active - Bisa login</option>
-                    <option value="inactive" {{ old('status', $participant->status) == 'inactive' ? 'selected' : '' }}>Inactive - Tidak bisa login</option>
+                    <option value="active" {{ old('status', $participant->status) == 'active' ? 'selected' : '' }} class="text-black">Active - Bisa login</option>
+                    <option value="inactive" {{ old('status', $participant->status) == 'inactive' ? 'selected' : '' }} class="text-black">Inactive - Tidak bisa login</option>
                 </select>
                 <p class="text-xs text-gray-400 mt-1">Participant yang inactive tidak bisa login menggunakan hash ID</p>
             </div>

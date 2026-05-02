@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Event;
 use App\Models\Participant;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -389,5 +390,65 @@ class OrderController extends Controller
                 'Content-Type' => 'text/csv',
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
+    }
+    /**
+     * Export single order to PDF (Invoice)
+     */
+    public function exportInvoicePdf(Order $order)
+    {
+        $this->authorizeOrder($order);
+        $order->load(['participant', 'event', 'payment']);
+        
+        $pdf = Pdf::loadView('exports.order-invoice', compact('order'));
+        $pdf->setPaper('A4', 'portrait');
+        
+        return $pdf->download('invoice_' . $order->invoice_number . '.pdf');
+    }
+
+    /**
+     * Export all orders to PDF
+     */
+    public function exportAllPdf(Request $request)
+    {
+        $user = Auth::user();
+        $query = Order::with(['participant', 'event', 'payment']);
+        
+        // Filter untuk organizer
+        if ($user->role === 'organizer') {
+            $eventIds = Event::where('created_by', $user->id)->pluck('id');
+            $query->whereIn('event_id', $eventIds);
+        }
+        
+        // Apply filters
+        if ($request->has('status') && $request->status != '') {
+            $query->where('status', $request->status);
+        }
+        
+        if ($request->has('event_id') && $request->event_id != '') {
+            $query->where('event_id', $request->event_id);
+        }
+        
+        $orders = $query->latest()->get();
+        
+        // Stats
+        $totalOrders = $orders->count();
+        $totalRevenue = $orders->where('status', 'paid')->sum('total_price');
+        $pendingOrders = $orders->where('status', 'pending')->count();
+        $paidOrders = $orders->where('status', 'paid')->count();
+        $freeOrders = $orders->where('status', 'free')->count();
+        $cancelledOrders = $orders->where('status', 'cancelled')->count();
+        
+        $pdf = Pdf::loadView('exports.orders-all', compact(
+            'orders',
+            'totalOrders',
+            'totalRevenue',
+            'pendingOrders',
+            'paidOrders',
+            'freeOrders',
+            'cancelledOrders'
+        ));
+        $pdf->setPaper('A4', 'landscape');
+        
+        return $pdf->download('orders_' . date('Y-m-d') . '.pdf');
     }
 }

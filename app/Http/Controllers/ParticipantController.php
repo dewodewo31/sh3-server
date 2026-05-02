@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\Participant;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -321,4 +322,55 @@ class ParticipantController extends Controller
         
         return view('participants.index', compact('participants'));
     }
+
+    /**
+     * Export participant to PDF
+     */
+    public function exportPdf($id)
+    {
+        $participant = Participant::with(['orders.event'])->findOrFail($id);
+        
+        $pdf = Pdf::loadView('exports.participant', compact('participant'));
+        $pdf->setPaper('A4', 'portrait');
+        
+        return $pdf->download('participant_' . $participant->hash_id . '.pdf');
+    }
+
+    /**
+     * Export all participants to PDF
+     */
+    public function exportAllPdf(Request $request)
+    {
+        $query = Participant::query();
+        
+        // Filter by status
+        if ($request->has('status') && $request->status != '') {
+            $query->where('status', $request->status);
+        }
+        
+        // Filter by gender
+        if ($request->has('gender') && $request->gender != '') {
+            $query->where('gender', $request->gender);
+        }
+        
+        $participants = $query->latest()->get();
+        $totalParticipants = $participants->count();
+        $activeCount = $participants->where('status', 'active')->count();
+        $inactiveCount = $participants->where('status', 'inactive')->count();
+        $maleCount = $participants->where('gender', 'male')->count();
+        $femaleCount = $participants->where('gender', 'female')->count();
+        
+        $pdf = Pdf::loadView('exports.participants-all', compact(
+            'participants', 
+            'totalParticipants',
+            'activeCount',
+            'inactiveCount',
+            'maleCount',
+            'femaleCount'
+        ));
+        $pdf->setPaper('A4', 'landscape');
+        
+        return $pdf->download('participants_' . date('Y-m-d') . '.pdf');
+    }
 }
+
