@@ -81,6 +81,8 @@
                 @endforeach
             </select>
 
+             <input type="month" name="month" value="{{ request('month') }}" class="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white">
+
             <input type="text"
                 name="search"
                 value="{{ request('search') }}"
@@ -99,7 +101,7 @@
                 Export All PDF
             </a>
 
-            @if(request()->hasAny(['status', 'event_id', 'search']))
+            @if(request()->hasAny(['status', 'event_id', 'search', 'month']))
             <a href="{{ route('orders.index') }}" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg transition">
                 Reset
             </a>

@@ -12,13 +12,14 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class OrderController extends Controller
 {
-    public function index(Request $request)
+public function index(Request $request)
     {
         $user = Auth::user();
-        $query = Order::with(['participant', 'event', 'payment']); // Hapus 'user'
+        $query = Order::with(['participant', 'event', 'payment']);
         
         // 🔒 ORGANIZER: Hanya lihat order dari event miliknya
         if ($user->role === 'organizer') {
@@ -55,7 +56,33 @@ class OrderController extends Controller
                   });
             });
         }
-        
+
+        // ========== FILTER BULAN ==========
+        // Mendukung format input bulan dari date input (YYYY-MM)
+        if ($request->filled('month')) {
+            try {
+                $monthYear = $request->month; // Format: 2024-04
+                
+                // Cek apakah format sudah benar (YYYY-MM)
+                if (preg_match('/^\d{4}-\d{2}$/', $monthYear)) {
+                    $parts = explode('-', $monthYear);
+                    $year = (int) $parts[0];
+                    $month = (int) $parts[1];
+                    
+                    // Validasi month antara 1-12
+                    if ($month >= 1 && $month <= 12) {
+                        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+                        $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+                        
+                        $query->whereBetween('created_at', [$startDate, $endDate]);
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error('Filter bulan error: ' . $e->getMessage());
+                // Error diabaikan, filter tidak diterapkan
+            }
+        }
+
         $orders = $query->latest()->paginate(15);
         
         // For filters
@@ -96,7 +123,7 @@ class OrderController extends Controller
         // 🔒 Authorize: Cek apakah organizer bisa melihat order ini
         $this->authorizeOrder($order);
         
-        $order->load(['participant', 'event', 'payment.verifier']); // Hapus 'user'
+        $order->load(['participant', 'event', 'payment.verifier']);
         
         return view('orders.show', compact('order'));
     }
@@ -391,6 +418,7 @@ class OrderController extends Controller
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"',
             ]);
     }
+    
     /**
      * Export single order to PDF (Invoice)
      */
@@ -408,47 +436,72 @@ class OrderController extends Controller
     /**
      * Export all orders to PDF
      */
-    public function exportAllPdf(Request $request)
-    {
-        $user = Auth::user();
-        $query = Order::with(['participant', 'event', 'payment']);
-        
-        // Filter untuk organizer
-        if ($user->role === 'organizer') {
-            $eventIds = Event::where('created_by', $user->id)->pluck('id');
-            $query->whereIn('event_id', $eventIds);
-        }
-        
-        // Apply filters
-        if ($request->has('status') && $request->status != '') {
-            $query->where('status', $request->status);
-        }
-        
-        if ($request->has('event_id') && $request->event_id != '') {
-            $query->where('event_id', $request->event_id);
-        }
-        
-        $orders = $query->latest()->get();
-        
-        // Stats
-        $totalOrders = $orders->count();
-        $totalRevenue = $orders->where('status', 'paid')->sum('total_price');
-        $pendingOrders = $orders->where('status', 'pending')->count();
-        $paidOrders = $orders->where('status', 'paid')->count();
-        $freeOrders = $orders->where('status', 'free')->count();
-        $cancelledOrders = $orders->where('status', 'cancelled')->count();
-        
-        $pdf = Pdf::loadView('exports.orders-all', compact(
-            'orders',
-            'totalOrders',
-            'totalRevenue',
-            'pendingOrders',
-            'paidOrders',
-            'freeOrders',
-            'cancelledOrders'
-        ));
-        $pdf->setPaper('A4', 'landscape');
-        
-        return $pdf->download('orders_' . date('Y-m-d') . '.pdf');
+    /**
+ * Export all orders to PDF
+ */
+public function exportAllPdf(Request $request)
+{
+    $user = Auth::user();
+    $query = Order::with(['participant', 'event', 'payment']);
+    
+    // Filter untuk organizer
+    if ($user->role === 'organizer') {
+        $eventIds = Event::where('created_by', $user->id)->pluck('id');
+        $query->whereIn('event_id', $eventIds);
     }
+    
+    // Apply filters
+    if ($request->has('status') && $request->status != '') {
+        $query->where('status', $request->status);
+    }
+    
+    if ($request->has('event_id') && $request->event_id != '') {
+        $query->where('event_id', $request->event_id);
+    }
+    
+    // ========== FILTER BULAN (sama seperti di index) ==========
+    if ($request->filled('month')) {
+        try {
+            $monthYear = $request->month;
+            
+            if (preg_match('/^\d{4}-\d{2}$/', $monthYear)) {
+                $parts = explode('-', $monthYear);
+                $year = (int) $parts[0];
+                $month = (int) $parts[1];
+                
+                if ($month >= 1 && $month <= 12) {
+                    $startDate = Carbon::create($year, $month, 1)->startOfMonth();
+                    $endDate = Carbon::create($year, $month, 1)->endOfMonth();
+                    
+                    $query->whereBetween('created_at', [$startDate, $endDate]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Export filter bulan error: ' . $e->getMessage());
+        }
+    }
+    
+    $orders = $query->latest()->get();
+    
+    // Stats
+    $totalOrders = $orders->count();
+    $totalRevenue = $orders->where('status', 'paid')->sum('total_price');
+    $pendingOrders = $orders->where('status', 'pending')->count();
+    $paidOrders = $orders->where('status', 'paid')->count();
+    $freeOrders = $orders->where('status', 'free')->count();
+    $cancelledOrders = $orders->where('status', 'cancelled')->count();
+    
+    $pdf = Pdf::loadView('exports.orders-all', compact(
+        'orders',
+        'totalOrders',
+        'totalRevenue',
+        'pendingOrders',
+        'paidOrders',
+        'freeOrders',
+        'cancelledOrders'
+    ));
+    $pdf->setPaper('A4', 'landscape');
+    
+    return $pdf->download('orders_' . date('Y-m-d') . '.pdf');
+}
 }

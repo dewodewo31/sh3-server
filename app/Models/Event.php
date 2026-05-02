@@ -17,14 +17,18 @@ class Event extends Model
         'category_id',
         'price',
         'quota',
-        'created_by'
+        'created_by',
+        'latitude',
+        'longitude',
     ];
 
     protected $casts = [
         'key_point' => 'array',
         'start_date' => 'datetime',
         'end_date' => 'datetime',
-        'price' => 'decimal:2'
+        'price' => 'decimal:2',
+        'latitude' => 'decimal:8',
+        'longitude' => 'decimal:8',
     ];
 
     // 🔗 RELATION

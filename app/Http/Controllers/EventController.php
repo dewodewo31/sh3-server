@@ -72,6 +72,15 @@ class EventController extends Controller
             $data['image'] = $request->file('image')->store('events', 'public');
         }
         
+        // Ambil koordinat dari alamat (untuk maps gratis)
+        if (empty($data['latitude']) || empty($data['longitude'])) {
+            $coords = $this->getCoordinatesFromAddress($data['location']);
+            if ($coords) {
+                $data['latitude'] = $coords['lat'];
+                $data['longitude'] = $coords['lng'];
+            }
+        }
+        
         $data['created_by'] = Auth::id();
 
         Event::create($data);
@@ -121,6 +130,15 @@ class EventController extends Controller
             }
             $data['image'] = $request->file('image')->store('events', 'public');
         }
+        
+        // Update koordinat jika lokasi berubah
+        if ($request->has('location') && $request->location != $event->location) {
+            $coords = $this->getCoordinatesFromAddress($request->location);
+            if ($coords) {
+                $data['latitude'] = $coords['lat'];
+                $data['longitude'] = $coords['lng'];
+            }
+        }
 
         $event->update($data);
 
@@ -138,6 +156,17 @@ class EventController extends Controller
         // Delete event image
         if ($event->image) {
             Storage::disk('public')->delete($event->image);
+        }
+        
+        // Delete event galleries
+        foreach ($event->galleries as $gallery) {
+            $images = $gallery->image;
+            if (is_array($images)) {
+                foreach ($images as $image) {
+                    Storage::disk('public')->delete($image);
+                }
+            }
+            $gallery->delete();
         }
 
         $event->delete();
@@ -159,7 +188,46 @@ class EventController extends Controller
         }
     }
 
-     /**
+    /**
+     * Get coordinates from address using Nominatim (OpenStreetMap) - GRATIS
+     */
+    private function getCoordinatesFromAddress($address)
+    {
+        if (empty($address)) {
+            return null;
+        }
+        
+        try {
+            $client = new \GuzzleHttp\Client();
+            $response = $client->get('https://nominatim.openstreetmap.org/search', [
+                'query' => [
+                    'q' => $address,
+                    'format' => 'json',
+                    'limit' => 1,
+                    'addressdetails' => 1
+                ],
+                'headers' => [
+                    'User-Agent' => 'SH3-Event-App/1.0'
+                ],
+                'timeout' => 10
+            ]);
+            
+            $data = json_decode($response->getBody(), true);
+            
+            if ($response->getStatusCode() == 200 && count($data) > 0) {
+                return [
+                    'lat' => (float) $data[0]['lat'],
+                    'lng' => (float) $data[0]['lon']
+                ];
+            }
+        } catch (\Exception $e) {
+            \Log::error('Geocoding error: ' . $e->getMessage());
+        }
+        
+        return null;
+    }
+
+    /**
      * Export single event to PDF (Brochure)
      */
     public function exportBrochurePdf(Event $event)
@@ -173,7 +241,7 @@ class EventController extends Controller
         $pdf = Pdf::loadView('exports.event-brochure', compact('event', 'registeredCount', 'remainingQuota'));
         $pdf->setPaper('A4', 'portrait');
         
-        return $pdf->download('event_' . $event->slug . '.pdf');
+        return $pdf->download('event_' . $event->id . '.pdf');
     }
 
     /**
