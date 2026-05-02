@@ -19,7 +19,7 @@
 
             <!-- Form -->
             <div class="p-6">
-                <form method="POST" action="{{ route('auth') }}">
+                <form method="POST" action="{{ route('login.auth') }}">
                     @csrf
 
                     <!-- Email -->
