@@ -289,17 +289,23 @@
                         </div>
                     </div>
 
-                    <!-- Duration -->
+                   <!-- Duration -->
                     <div class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-green-400 mt-0.5" fill="none" stroke="currentColor"
-                            viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <svg class="w-5 h-5 text-green-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div>
                             <p class="text-gray-400 text-sm">Durasi</p>
                             <p class="text-white font-semibold">
-                                {{ $event->start_date->diffInDays($event->end_date) + 1 }} Hari
+                                @if($event->start_date->isSameDay($event->end_date))
+                                    {{ $event->start_date->format('H:i') }} - {{ $event->end_date->format('H:i') }} WIB
+                                    <span class="text-xs text-gray-400 block">(Satu hari)</span>
+                                @else
+                                    {{ $event->start_date->diffInDays($event->end_date) + 1 }} Hari
+                                    <span class="text-xs text-gray-400 block">
+                                        {{ $event->start_date->format('d M Y H:i') }} - {{ $event->end_date->format('d M Y H:i') }}
+                                    </span>
+                                @endif
                             </p>
                         </div>
                     </div>

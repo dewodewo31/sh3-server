@@ -115,22 +115,27 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-gray-300 mb-2">Tanggal Mulai *</label>
-                        <input type="datetime-local" name="start_date" value="{{ old('start_date') }}"
+                        <input type="datetime-local" 
+                            name="start_date" 
+                            value="{{ old('start_date') }}"
                             class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500 @error('start_date') border-red-500 @enderror">
                         @error('start_date')
                             <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
-
-                    <div>
-                        <label class="block text-gray-300 mb-2">Tanggal Selesai *</label>
-                        <input type="datetime-local" name="end_date" value="{{ old('end_date') }}"
-                            class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500 @error('end_date') border-red-500 @enderror">
-                        @error('end_date')
-                            <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
+                    
+                <div>
+                    <label class="block text-gray-300 mb-2">Tanggal Selesai *</label>
+                    <input type="datetime-local" 
+                        name="end_date" 
+                        value="{{ old('end_date') }}"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500 @error('end_date') border-red-500 @enderror">
+                    @error('end_date')
+                        <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                    <p class="text-xs text-gray-400 mt-1">Bisa di hari yang sama (beda jam) atau berbeda hari</p>
                 </div>
+            </div>
 
                 <!-- Price & Quota -->
                 <div class="grid grid-cols-2 gap-4">

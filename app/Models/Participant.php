@@ -2,11 +2,17 @@
 
 namespace App\Models;
 
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-class Participant extends Model
+class Participant extends Authenticatable  // ← Ubah dari Model ke Authenticatable
 {
+    use HasApiTokens;  // ← Tambahkan trait ini
+    
+    protected $table = 'participants';
+    
     protected $fillable = [
         'hash_id',
         'name',
@@ -24,6 +30,11 @@ class Participant extends Model
     protected $casts = [
         'birthdate' => 'date',
         'last_login_at' => 'datetime'
+    ];
+
+    // Sembunyikan ID dari response API
+    protected $hidden = [
+        'id'
     ];
 
     protected static function booted()
@@ -44,7 +55,7 @@ class Participant extends Model
         $prefix = 'SH3ID';
         $lastParticipant = static::orderBy('id', 'desc')->first();
         
-        if ($lastParticipant) {
+        if ($lastParticipant && $lastParticipant->hash_id) {
             $lastId = (int) substr($lastParticipant->hash_id, strlen($prefix));
             $newId = str_pad($lastId + 1, 6, '0', STR_PAD_LEFT);
         } else {
@@ -52,6 +63,21 @@ class Participant extends Model
         }
         
         return $prefix . $newId;
+    }
+
+    /**
+     * Generate random hash ID (alternatif)
+     */
+    public static function generateRandomHashId(): string
+    {
+        $prefix = 'SH3ID';
+        
+        do {
+            $random = Str::upper(Str::random(8));
+            $hashId = $prefix . $random;
+        } while (self::where('hash_id', $hashId)->exists());
+        
+        return $hashId;
     }
 
     /**
@@ -76,5 +102,63 @@ class Participant extends Model
     public function payments()
     {
         return $this->hasManyThrough(Payment::class, Order::class);
+    }
+    
+    /**
+     * Check if participant is active
+     */
+    public function isActive()
+    {
+        return $this->status === 'active';
+    }
+    
+    /**
+     * Get the name of the unique identifier for the user.
+     * Required by Authenticatable
+     */
+    public function getAuthIdentifierName()
+    {
+        return 'hash_id';
+    }
+
+    /**
+     * Get the unique identifier for the user.
+     */
+    public function getAuthIdentifier()
+    {
+        return $this->hash_id;
+    }
+
+    /**
+     * Get the password for the user.
+     * Participants don't have password
+     */
+    public function getAuthPassword()
+    {
+        return null;
+    }
+
+    /**
+     * Get the token value for the "remember me" session.
+     */
+    public function getRememberToken()
+    {
+        return null;
+    }
+
+    /**
+     * Set the token value for the "remember me" session.
+     */
+    public function setRememberToken($value)
+    {
+        // Not implemented
+    }
+
+    /**
+     * Get the column name for the "remember me" token.
+     */
+    public function getRememberTokenName()
+    {
+        return '';
     }
 }
