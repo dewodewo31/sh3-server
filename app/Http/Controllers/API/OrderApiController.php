@@ -20,7 +20,7 @@ class OrderApiController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'event_id' => 'required|exists:events,id',
-            'participant_id' => 'required|exists:participants,id',
+            'participant_id' => 'required|exists:participants,hash_id', // dari id jadi hash_id
         ]);
 
         if ($validator->fails()) {
@@ -32,7 +32,8 @@ class OrderApiController extends Controller
         }
 
         $event = Event::find($request->event_id);
-        $participant = Participant::find($request->participant_id);
+        // $participant = Participant::find($request->participant_id); // lama
+        $participant = Participant::where('hash_id', $request->participant_id)->first(); // baru
 
         // Check if already ordered
         $existingOrder = Order::where('participant_id', $participant->id)
