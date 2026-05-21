@@ -14,21 +14,6 @@
             Back to Orders
         </a>
        
-
-        <div class="flex gap-2">
-            @if($order->status != 'paid' && $order->status != 'cancelled' && $order->status != 'free')
-            <form action="{{ route('orders.cancel', $order) }}" method="POST" class="inline" onsubmit="return confirm('Yakin ingin membatalkan order ini?')">
-                @csrf
-                @method('PATCH')
-                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                    </svg>
-                    Cancel Order
-                </button>
-            </form>
-            @endif
-        </div>
     </div>
 </div>
 
@@ -251,8 +236,8 @@
                 <div class="mb-4">
                     <label class="block text-gray-300 mb-2 text-sm">Verification Status</label>
                     <select name="status" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">
-                        <option value="paid">✓ Confirm - Payment Valid</option>
-                        <option value="cancelled">✗ Reject - Payment Invalid</option>
+                        <option class="text-black" value="paid">✓ Confirm - Payment Valid</option>
+                        <option class="text-black" value="cancelled">✗ Reject - Payment Invalid</option>
                     </select>
                 </div>
 

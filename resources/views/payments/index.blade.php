@@ -63,18 +63,18 @@
     <!-- Filters -->
     <form method="GET" action="{{ route('payments.index') }}" class="flex flex-wrap gap-3">
         <select name="status" class="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white">
-            <option value="">All Status</option>
+            <option class="text-black" value="">All Status</option>
             @foreach($statuses as $status)
-                <option value="{{ $status }}" {{ request('status') == $status ? 'selected' : '' }}>
+                <option class="text-black" value="{{ $status }}" {{ request('status') == $status ? 'selected' : '' }}>
                     {{ ucfirst($status) }}
                 </option>
             @endforeach
         </select>
         
         <select name="payment_method" class="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white">
-            <option value="">All Methods</option>
+            <option class="text-black" value="">All Methods</option>
             @foreach($paymentMethods as $method)
-                <option value="{{ $method }}" {{ request('payment_method') == $method ? 'selected' : '' }}>
+                <option class="text-black" value="{{ $method }}" {{ request('payment_method') == $method ? 'selected' : '' }}>
                     {{ $method }}
                 </option>
             @endforeach

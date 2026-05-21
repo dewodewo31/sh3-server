@@ -64,18 +64,18 @@
     <div class="flex flex-wrap gap-3">
         <form method="GET" action="{{ route('orders.index') }}" class="flex flex-wrap gap-3">
             <select name="status" class="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white">
-                <option value="">All Status</option>
+                <option class="text-black" value="">All Status</option>
                 @foreach($statuses as $status)
-                <option value="{{ $status }}" {{ request('status') == $status ? 'selected' : '' }}>
+                <option class="text-black" value="{{ $status }}" {{ request('status') == $status ? 'selected' : '' }}>
                     {{ ucfirst($status) }}
                 </option>
                 @endforeach
             </select>
 
             <select name="event_id" class="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white">
-                <option value="">All Events</option>
+                <option class="text-black" value="">All Events</option>
                 @foreach($events as $event)
-                <option value="{{ $event->id }}" {{ request('event_id') == $event->id ? 'selected' : '' }}>
+                <option class="text-black" value="{{ $event->id }}" {{ request('event_id') == $event->id ? 'selected' : '' }}>
                     {{ $event->title }}
                 </option>
                 @endforeach
