@@ -2,293 +2,120 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreOrderRequest;
-use App\Http\Requests\UpdateOrderRequest;
-use App\Models\Order;
-use App\Models\Payment;
-use App\Models\Event;
-use App\Models\Participant;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\OrderService\OrderServiceInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
-use Carbon\Carbon;
 
 class OrderController extends Controller
 {
-public function index(Request $request)
+    protected $orderService;
+
+    public function __construct(OrderServiceInterface $orderService)
     {
-        $user = Auth::user();
-        $query = Order::with(['participant', 'event', 'payment']);
-        
-        // 🔒 ORGANIZER: Hanya lihat order dari event miliknya
-        if ($user->role === 'organizer') {
-            $eventIds = Event::where('created_by', $user->id)->pluck('id');
-            $query->whereIn('event_id', $eventIds);
-        }
-        
-        // Filter by status
-        if ($request->has('status') && $request->status != '') {
-            $query->where('status', $request->status);
-        }
-        
-        // Filter by event
-        if ($request->has('event_id') && $request->event_id != '') {
-            if ($user->role === 'organizer') {
-                $event = Event::where('id', $request->event_id)->where('created_by', $user->id)->first();
-                if ($event) {
-                    $query->where('event_id', $request->event_id);
-                }
-            } else {
-                $query->where('event_id', $request->event_id);
-            }
-        }
-        
-        // Search by invoice, ticket code, or participant name/email
-        if ($request->has('search') && $request->search != '') {
-            $query->where(function($q) use ($request) {
-                $q->where('invoice_number', 'like', '%' . $request->search . '%')
-                  ->orWhere('ticket_code', 'like', '%' . $request->search . '%')
-                  ->orWhereHas('participant', function($q2) use ($request) {
-                      $q2->where('name', 'like', '%' . $request->search . '%')
-                         ->orWhere('email', 'like', '%' . $request->search . '%')
-                         ->orWhere('hash_id', 'like', '%' . $request->search . '%');
-                  });
-            });
-        }
-
-        // ========== FILTER BULAN ==========
-        // Mendukung format input bulan dari date input (YYYY-MM)
-        if ($request->filled('month')) {
-            try {
-                $monthYear = $request->month; // Format: 2024-04
-                
-                // Cek apakah format sudah benar (YYYY-MM)
-                if (preg_match('/^\d{4}-\d{2}$/', $monthYear)) {
-                    $parts = explode('-', $monthYear);
-                    $year = (int) $parts[0];
-                    $month = (int) $parts[1];
-                    
-                    // Validasi month antara 1-12
-                    if ($month >= 1 && $month <= 12) {
-                        $startDate = Carbon::create($year, $month, 1)->startOfMonth();
-                        $endDate = Carbon::create($year, $month, 1)->endOfMonth();
-                        
-                        $query->whereBetween('created_at', [$startDate, $endDate]);
-                    }
-                }
-            } catch (\Exception $e) {
-                \Log::error('Filter bulan error: ' . $e->getMessage());
-                // Error diabaikan, filter tidak diterapkan
-            }
-        }
-
-        $orders = $query->latest()->paginate(15);
-        
-        // For filters
-        if ($user->role === 'organizer') {
-            $events = Event::where('created_by', $user->id)->get();
-        } else {
-            $events = Event::all();
-        }
-        
-        $statuses = ['pending', 'paid', 'free', 'cancelled'];
-        
-        // Stats untuk organizer
-        if ($user->role === 'organizer') {
-            $eventIds = Event::where('created_by', $user->id)->pluck('id');
-            $totalOrders = Order::whereIn('event_id', $eventIds)->count();
-            $pendingOrders = Order::whereIn('event_id', $eventIds)->where('status', 'pending')->count();
-            $paidOrders = Order::whereIn('event_id', $eventIds)->where('status', 'paid')->count();
-            $freeOrders = Order::whereIn('event_id', $eventIds)->where('status', 'free')->count();
-            $cancelledOrders = Order::whereIn('event_id', $eventIds)->where('status', 'cancelled')->count();
-            $totalRevenue = Order::whereIn('event_id', $eventIds)->where('status', 'paid')->sum('total_price');
-        } else {
-            $totalOrders = Order::count();
-            $pendingOrders = Order::where('status', 'pending')->count();
-            $paidOrders = Order::where('status', 'paid')->count();
-            $freeOrders = Order::where('status', 'free')->count();
-            $cancelledOrders = Order::where('status', 'cancelled')->count();
-            $totalRevenue = Order::where('status', 'paid')->sum('total_price');
-        }
-        
-        return view('orders.index', compact('orders', 'events', 'statuses', 
-                                            'totalOrders', 'pendingOrders', 
-                                            'paidOrders', 'freeOrders', 'cancelledOrders',
-                                            'totalRevenue'));
+        $this->orderService = $orderService;
     }
 
-    public function show(Order $order)
+    /**
+     * Display a listing of orders
+     */
+    public function index(Request $request)
     {
-        // 🔒 Authorize: Cek apakah organizer bisa melihat order ini
-        $this->authorizeOrder($order);
+        $orders = $this->orderService->getOrders($request);
+        $stats = $this->orderService->getOrderStats($request);
+        $filterData = $this->orderService->getFilterData();
         
-        $order->load(['participant', 'event', 'payment.verifier']);
+        return view('orders.index', array_merge(
+            compact('orders'),
+            $stats,
+            $filterData
+        ));
+    }
+
+    /**
+     * Display order details
+     */
+    public function show($id)
+    {
+        if (!$this->orderService->authorizeOrder($id)) {
+            abort(403, 'Tidak diizinkan');
+        }
+        
+        $order = $this->orderService->getOrderById($id);
         
         return view('orders.show', compact('order'));
     }
 
     /**
-     * Admin verifikasi pembayaran
+     * Verify payment (Admin/Organizer)
      */
-    public function verifyPayment(Request $request, Order $order)
+    public function verifyPayment(Request $request, $id)
     {
-        // 🔒 Authorize: Cek apakah organizer bisa verifikasi order ini
-        $this->authorizeOrder($order);
+        if (!$this->orderService->authorizeOrder($id)) {
+            abort(403, 'Tidak diizinkan');
+        }
         
         $request->validate([
             'status' => 'required|in:paid,cancelled',
             'notes' => 'nullable|string'
         ]);
         
-        // Update order status
-        $order->status = $request->status;
-        $order->save();
-        
-        // Update payment if exists
-        if ($order->payment) {
-            $order->payment->status = $request->status == 'paid' ? 'confirmed' : 'rejected';
-            $order->payment->verified_by = Auth::id();
-            $order->payment->verified_at = now();
-            $order->payment->notes = $request->notes;
-            $order->payment->save();
-        }
+        $this->orderService->verifyPayment($id, $request->only(['status', 'notes']));
         
         $statusText = $request->status == 'paid' ? 'diverifikasi' : 'dibatalkan';
         
-        return redirect()->route('orders.show', $order)
+        return redirect()->route('orders.show', $id)
             ->with('success', "Pembayaran berhasil {$statusText}");
     }
     
     /**
-     * Update payment proof (from customer via API)
+     * Update payment proof (Customer via API)
      */
-    public function updatePaymentProof(Request $request, Order $order)
+    public function updatePaymentProof(Request $request, $id)
     {
-        // Cek apakah order sudah paid atau cancelled
-        if (in_array($order->status, ['paid', 'cancelled', 'free'])) {
-            return redirect()->route('orders.show', $order)
-                ->with('error', 'Order sudah diproses, tidak dapat upload bukti pembayaran');
-        }
-        
-        // Jika event gratis
-        if ($order->event->price <= 0) {
-            $order->status = 'free';
-            $order->save();
+        try {
+            $this->orderService->updatePaymentProof($id, $request->all());
             
-            return redirect()->route('orders.show', $order)
-                ->with('success', 'Event gratis, order berhasil dikonfirmasi');
+            return redirect()->route('orders.show', $id)
+                ->with('success', 'Bukti pembayaran berhasil diupload, menunggu verifikasi admin');
+        } catch (\Exception $e) {
+            return redirect()->route('orders.show', $id)
+                ->with('error', $e->getMessage());
         }
-        
-        $request->validate([
-            'payment_proof' => 'required|image|mimes:jpg,jpeg,png|max:2048',
-            'payment_method' => 'required|string',
-            'amount' => 'required|numeric|min:0',
-            'paid_at' => 'required|date'
-        ]);
-        
-        // Cek apakah amount sesuai
-        if ($request->amount < $order->total_price) {
-            return redirect()->back()
-                ->with('error', 'Jumlah pembayaran kurang dari total harga');
-        }
-        
-        // Upload proof image
-        $proofPath = $request->file('payment_proof')->store('payment-proofs', 'public');
-        
-        // Create or update payment
-        Payment::updateOrCreate(
-            ['order_id' => $order->id],
-            [
-                'payment_method' => $request->payment_method,
-                'payment_proof' => $proofPath,
-                'amount' => $request->amount,
-                'paid_at' => $request->paid_at,
-                'status' => 'pending',
-                'notes' => 'Menunggu verifikasi admin'
-            ]
-        );
-        
-        // Order status tetap pending
-        $order->status = 'pending';
-        $order->save();
-        
-        return redirect()->route('orders.show', $order)
-            ->with('success', 'Bukti pembayaran berhasil diupload, menunggu verifikasi admin');
     }
 
     /**
      * Delete order (Admin only)
      */
-    public function destroy(Order $order)
+    public function destroy($id)
     {
-        // 🔒 Authorize: Hanya admin yang bisa hapus order
         if (Auth::user()->role !== 'admin') {
             abort(403, 'Only admin can delete orders');
         }
         
-        // Delete payment proof if exists
-        if ($order->payment && $order->payment->payment_proof) {
-            Storage::disk('public')->delete($order->payment->payment_proof);
-        }
-        
-        $order->delete();
+        $this->orderService->deleteOrder($id);
 
         return redirect()->route('orders.index')
             ->with('success', 'Order berhasil dihapus');
     }
     
     /**
-     * Cancel order (Admin atau Organizer)
+     * Cancel order (Admin/Organizer)
      */
-    public function cancel(Order $order)
+    public function cancel($id)
     {
-        // 🔒 Authorize: Cek apakah organizer bisa cancel order ini
-        $this->authorizeOrder($order);
-        
-        // Cek apakah order sudah paid/free
-        if (in_array($order->status, ['paid', 'free'])) {
-            return redirect()->route('orders.show', $order)
-                ->with('error', 'Order yang sudah dikonfirmasi tidak dapat dibatalkan');
+        if (!$this->orderService->authorizeOrder($id)) {
+            abort(403, 'Tidak diizinkan');
         }
         
-        $order->status = 'cancelled';
-        $order->save();
-        
-        if ($order->payment) {
-            $order->payment->status = 'rejected';
-            $order->payment->verified_by = Auth::id();
-            $order->payment->verified_at = now();
-            $order->payment->notes = 'Order dibatalkan oleh ' . Auth::user()->role;
-            $order->payment->save();
+        try {
+            $this->orderService->cancelOrder($id);
+            
+            return redirect()->route('orders.show', $id)
+                ->with('success', 'Order berhasil dibatalkan');
+        } catch (\Exception $e) {
+            return redirect()->route('orders.show', $id)
+                ->with('error', $e->getMessage());
         }
-        
-        return redirect()->route('orders.show', $order)
-            ->with('success', 'Order berhasil dibatalkan');
-    }
-    
-    /**
-     * 🔒 Authorization helper untuk Order
-     */
-    private function authorizeOrder(Order $order)
-    {
-        $user = Auth::user();
-        
-        // Admin bisa akses semua
-        if ($user->role === 'admin') {
-            return;
-        }
-        
-        // Organizer hanya bisa akses order dari event miliknya
-        if ($user->role === 'organizer') {
-            $event = Event::find($order->event_id);
-            if (!$event || $event->created_by !== $user->id) {
-                abort(403, 'Tidak diizinkan mengakses order ini');
-            }
-            return;
-        }
-        
-        abort(403, 'Unauthorized');
     }
     
     /**
@@ -300,11 +127,9 @@ public function index(Request $request)
             'ticket_code' => 'required|string'
         ]);
         
-        $order = Order::with(['event', 'participant'])
-            ->where('ticket_code', $request->ticket_code)
-            ->first();
+        $result = $this->orderService->checkTicket($request->ticket_code);
         
-        if (!$order) {
+        if (!$result) {
             return response()->json([
                 'success' => false,
                 'message' => 'Ticket not found'
@@ -313,16 +138,7 @@ public function index(Request $request)
         
         return response()->json([
             'success' => true,
-            'data' => [
-                'ticket_code' => $order->ticket_code,
-                'invoice_number' => $order->invoice_number,
-                'event_name' => $order->event->title,
-                'event_date' => $order->event->start_date->format('d M Y'),
-                'event_location' => $order->event->location,
-                'participant_name' => $order->participant->name,
-                'status' => $order->status,
-                'valid' => in_array($order->status, ['paid', 'free'])
-            ]
+            'data' => $result
         ]);
     }
     
@@ -349,159 +165,29 @@ public function index(Request $request)
      */
     public function export(Request $request)
     {
-        $user = Auth::user();
-        $query = Order::with(['participant', 'event']);
+        $result = $this->orderService->exportOrdersToCsv($request);
         
-        // 🔒 Organizer hanya export order dari event miliknya
-        if ($user->role === 'organizer') {
-            $eventIds = Event::where('created_by', $user->id)->pluck('id');
-            $query->whereIn('event_id', $eventIds);
-        }
-        
-        if ($request->has('status') && $request->status != '') {
-            $query->where('status', $request->status);
-        }
-        
-        if ($request->has('event_id') && $request->event_id != '') {
-            if ($user->role === 'organizer') {
-                $event = Event::where('id', $request->event_id)->where('created_by', $user->id)->first();
-                if ($event) {
-                    $query->where('event_id', $request->event_id);
-                }
-            } else {
-                $query->where('event_id', $request->event_id);
-            }
-        }
-        
-        $orders = $query->get();
-        
-        $filename = 'orders_' . date('Y-m-d_His') . '.csv';
-        $handle = fopen('php://temp', 'w+');
-        
-        // Add CSV headers
-        fputcsv($handle, [
-            'Invoice Number',
-            'Ticket Code',
-            'Participant Name',
-            'Participant Email',
-            'Participant Hash ID',
-            'Event Title',
-            'Event Date',
-            'Total Price',
-            'Status',
-            'Order Date'
-        ]);
-        
-        // Add data rows
-        foreach ($orders as $order) {
-            fputcsv($handle, [
-                $order->invoice_number,
-                $order->ticket_code,
-                $order->participant->name ?? 'N/A',
-                $order->participant->email ?? 'N/A',
-                $order->participant->hash_id ?? 'N/A',
-                $order->event->title ?? 'N/A',
-                $order->event->start_date->format('d/m/Y') ?? 'N/A',
-                $order->total_price > 0 ? 'Rp ' . number_format($order->total_price, 0, ',', '.') : 'FREE',
-                $order->status,
-                $order->created_at->format('d/m/Y H:i')
-            ]);
-        }
-        
-        rewind($handle);
-        $csvContent = stream_get_contents($handle);
-        fclose($handle);
-        
-        return response($csvContent)
-            ->withHeaders([
-                'Content-Type' => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            ]);
+        return response($result['content'])
+            ->withHeaders($result['headers']);
     }
     
     /**
      * Export single order to PDF (Invoice)
      */
-    public function exportInvoicePdf(Order $order)
+    public function exportInvoicePdf($id)
     {
-        $this->authorizeOrder($order);
-        $order->load(['participant', 'event', 'payment']);
+        if (!$this->orderService->authorizeOrder($id)) {
+            abort(403, 'Tidak diizinkan');
+        }
         
-        $pdf = Pdf::loadView('exports.order-invoice', compact('order'));
-        $pdf->setPaper('A4', 'portrait');
-        
-        return $pdf->download('invoice_' . $order->invoice_number . '.pdf');
+        return $this->orderService->exportSingleOrderToPdf($id);
     }
 
     /**
      * Export all orders to PDF
      */
-    /**
- * Export all orders to PDF
- */
-public function exportAllPdf(Request $request)
-{
-    $user = Auth::user();
-    $query = Order::with(['participant', 'event', 'payment']);
-    
-    // Filter untuk organizer
-    if ($user->role === 'organizer') {
-        $eventIds = Event::where('created_by', $user->id)->pluck('id');
-        $query->whereIn('event_id', $eventIds);
+    public function exportAllPdf(Request $request)
+    {
+        return $this->orderService->exportOrdersToPdf($request);
     }
-    
-    // Apply filters
-    if ($request->has('status') && $request->status != '') {
-        $query->where('status', $request->status);
-    }
-    
-    if ($request->has('event_id') && $request->event_id != '') {
-        $query->where('event_id', $request->event_id);
-    }
-    
-    // ========== FILTER BULAN (sama seperti di index) ==========
-    if ($request->filled('month')) {
-        try {
-            $monthYear = $request->month;
-            
-            if (preg_match('/^\d{4}-\d{2}$/', $monthYear)) {
-                $parts = explode('-', $monthYear);
-                $year = (int) $parts[0];
-                $month = (int) $parts[1];
-                
-                if ($month >= 1 && $month <= 12) {
-                    $startDate = Carbon::create($year, $month, 1)->startOfMonth();
-                    $endDate = Carbon::create($year, $month, 1)->endOfMonth();
-                    
-                    $query->whereBetween('created_at', [$startDate, $endDate]);
-                }
-            }
-        } catch (\Exception $e) {
-            \Log::error('Export filter bulan error: ' . $e->getMessage());
-        }
-    }
-    
-    $orders = $query->latest()->get();
-    
-    // Stats
-    $totalOrders = $orders->count();
-    $totalRevenue = $orders->where('status', 'paid')->sum('total_price');
-    $pendingOrders = $orders->where('status', 'pending')->count();
-    $paidOrders = $orders->where('status', 'paid')->count();
-    $freeOrders = $orders->where('status', 'free')->count();
-    $cancelledOrders = $orders->where('status', 'cancelled')->count();
-    
-    $pdf = Pdf::loadView('exports.orders-all', compact(
-        'orders',
-        'totalOrders',
-        'totalRevenue',
-        'pendingOrders',
-        'paidOrders',
-        'freeOrders',
-        'cancelledOrders'
-    ));
-    $pdf->setPaper('A4', 'landscape');
-    
-    return $pdf->download('orders_' . date('Y-m-d') . '.pdf');
-}
 }

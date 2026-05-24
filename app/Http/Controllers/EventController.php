@@ -2,53 +2,35 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Event;
 use App\Models\Category;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
+use App\Services\EventServices\EventServiceInterface;
 use App\Http\Requests\StoreEventRequest;
 use App\Http\Requests\UpdateEventRequest;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class EventController extends Controller
 {
+    protected $eventService;
+
+    public function __construct(EventServiceInterface $eventService)
+    {
+        $this->eventService = $eventService;
+    }
+
     /**
      * Display a listing of events
      */
-    public function index()
+    public function index(Request $request)
     {
-        $user = Auth::user();
-
-        // Organizer hanya lihat event miliknya
-        if ($user->role === 'organizer') {
-            $events = Event::with(['category', 'creator'])
-                ->where('created_by', $user->id)
-                ->latest()
-                ->paginate(10);
-        } else {
-            // Admin lihat semua
-            $events = Event::with(['category', 'creator'])
-                ->latest()
-                ->paginate(10);
-        }
-
-        // Stats for dashboard
-        $totalEvents = Event::when($user->role === 'organizer', function($q) use ($user) {
-            return $q->where('created_by', $user->id);
-        })->count();
+        $events = $this->eventService->getEvents($request);
+        $stats = $this->eventService->getEventStats();
         
-        $totalOrders = Event::when($user->role === 'organizer', function($q) use ($user) {
-            return $q->where('created_by', $user->id);
-        })->withCount('orders')->get()->sum('orders_count');
-        
-        $totalRevenue = Event::when($user->role === 'organizer', function($q) use ($user) {
-            return $q->where('created_by', $user->id);
-        })->with('orders')->get()->sum(function($event) {
-            return $event->orders->sum('total_price');
-        });
-
-        return view('events.index', compact('events', 'totalEvents', 'totalOrders', 'totalRevenue'));
+        return view('events.index', array_merge(
+            compact('events'),
+            $stats
+        ));
     }
 
     /**
@@ -65,25 +47,7 @@ class EventController extends Controller
      */
     public function store(StoreEventRequest $request)
     {
-        $data = $request->validated();
-        
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('events', 'public');
-        }
-        
-        // Ambil koordinat dari alamat (untuk maps gratis)
-        if (empty($data['latitude']) || empty($data['longitude'])) {
-            $coords = $this->getCoordinatesFromAddress($data['location']);
-            if ($coords) {
-                $data['latitude'] = $coords['lat'];
-                $data['longitude'] = $coords['lng'];
-            }
-        }
-        
-        $data['created_by'] = Auth::id();
-
-        Event::create($data);
+        $this->eventService->createEvent($request->validated());
 
         return redirect()->route('events.index')
             ->with('success', 'Event berhasil dibuat');
@@ -92,11 +56,10 @@ class EventController extends Controller
     /**
      * Show detail event
      */
-    public function show(Event $event)
+    public function show($id)
     {
+        $event = $this->eventService->getEventById($id);
         $this->authorizeEvent($event);
-        
-        $event->load(['category', 'creator', 'galleries']);
         
         return view('events.show', compact('event'));
     }
@@ -104,10 +67,11 @@ class EventController extends Controller
     /**
      * Show form edit
      */
-    public function edit(Event $event)
+    public function edit($id)
     {
+        $event = $this->eventService->getEventById($id);
         $this->authorizeEvent($event);
-
+        
         $categories = Category::all();
 
         return view('events.edit', compact('event', 'categories'));
@@ -116,31 +80,12 @@ class EventController extends Controller
     /**
      * Update event
      */
-    public function update(UpdateEventRequest $request, Event $event)
+    public function update(UpdateEventRequest $request, $id)
     {
+        $event = $this->eventService->getEventById($id);
         $this->authorizeEvent($event);
-
-        $data = $request->validated();
-
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            // Delete old image
-            if ($event->image) {
-                Storage::disk('public')->delete($event->image);
-            }
-            $data['image'] = $request->file('image')->store('events', 'public');
-        }
         
-        // Update koordinat jika lokasi berubah
-        if ($request->has('location') && $request->location != $event->location) {
-            $coords = $this->getCoordinatesFromAddress($request->location);
-            if ($coords) {
-                $data['latitude'] = $coords['lat'];
-                $data['longitude'] = $coords['lng'];
-            }
-        }
-
-        $event->update($data);
+        $this->eventService->updateEvent($id, $request->validated());
 
         return redirect()->route('events.index')
             ->with('success', 'Event berhasil diupdate');
@@ -149,92 +94,25 @@ class EventController extends Controller
     /**
      * Delete event
      */
-    public function destroy(Event $event)
+    public function destroy($id)
     {
+        $event = $this->eventService->getEventById($id);
         $this->authorizeEvent($event);
-
-        // Delete event image
-        if ($event->image) {
-            Storage::disk('public')->delete($event->image);
-        }
         
-        // Delete event galleries
-        foreach ($event->galleries as $gallery) {
-            $images = $gallery->image;
-            if (is_array($images)) {
-                foreach ($images as $image) {
-                    Storage::disk('public')->delete($image);
-                }
-            }
-            $gallery->delete();
-        }
-
-        $event->delete();
+        $this->eventService->deleteEvent($id);
 
         return redirect()->route('events.index')
             ->with('success', 'Event berhasil dihapus');
     }
 
     /**
-     * 🔒 Authorization helper
-     */
-    private function authorizeEvent(Event $event)
-    {
-        $user = Auth::user();
-
-        // Organizer only can access their own events
-        if ($user->role === 'organizer' && $event->created_by !== $user->id) {
-            abort(403, 'Tidak diizinkan');
-        }
-    }
-
-    /**
-     * Get coordinates from address using Nominatim (OpenStreetMap) - GRATIS
-     */
-    private function getCoordinatesFromAddress($address)
-    {
-        if (empty($address)) {
-            return null;
-        }
-        
-        try {
-            $client = new \GuzzleHttp\Client();
-            $response = $client->get('https://nominatim.openstreetmap.org/search', [
-                'query' => [
-                    'q' => $address,
-                    'format' => 'json',
-                    'limit' => 1,
-                    'addressdetails' => 1
-                ],
-                'headers' => [
-                    'User-Agent' => 'SH3-Event-App/1.0'
-                ],
-                'timeout' => 10
-            ]);
-            
-            $data = json_decode($response->getBody(), true);
-            
-            if ($response->getStatusCode() == 200 && count($data) > 0) {
-                return [
-                    'lat' => (float) $data[0]['lat'],
-                    'lng' => (float) $data[0]['lon']
-                ];
-            }
-        } catch (\Exception $e) {
-            \Log::error('Geocoding error: ' . $e->getMessage());
-        }
-        
-        return null;
-    }
-
-    /**
      * Export single event to PDF (Brochure)
      */
-    public function exportBrochurePdf(Event $event)
+    public function exportBrochurePdf($id)
     {
+        $event = $this->eventService->getEventById($id);
         $this->authorizeEvent($event);
         
-        $event->load(['category', 'creator', 'galleries']);
         $registeredCount = $event->orders()->count();
         $remainingQuota = $event->quota - $registeredCount;
         
@@ -295,5 +173,18 @@ class EventController extends Controller
         $pdf->setPaper('A4', 'landscape');
         
         return $pdf->download('events_' . date('Y-m-d') . '.pdf');
+    }
+
+    /**
+     * 🔒 Authorization helper
+     */
+    private function authorizeEvent($event)
+    {
+        $user = Auth::user();
+
+        // Organizer only can access their own events
+        if ($user->role === 'organizer' && $event->created_by !== $user->id) {
+            abort(403, 'Tidak diizinkan');
+        }
     }
 }
