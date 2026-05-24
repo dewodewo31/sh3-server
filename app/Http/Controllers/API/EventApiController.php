@@ -209,4 +209,75 @@ class EventApiController extends Controller
         }
         return $images;
     }
+     public function participants($id, Request $request)
+    {
+        $event = Event::findOrFail($id);
+        $currentParticipant = $request->user();
+
+        // Check if current user has joined this event
+        $hasJoined = Order::where('participant_id', $currentParticipant->id)
+            ->where('event_id', $event->id)
+            ->whereIn('status', ['paid', 'free'])
+            ->exists();
+
+        if (!$hasJoined) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You must join this event to see other participants'
+            ], 403);
+        }
+
+        // Get all participants who joined this event (paid or free)
+        $participants = Order::with(['participant'])
+            ->where('event_id', $event->id)
+            ->whereIn('status', ['paid', 'free'])
+            ->get()
+            ->map(function($order) {
+                return [
+                    'id' => $order->participant->id,
+                    'hash_id' => $order->participant->hash_id,
+                    'name' => $order->participant->name,
+                    'email' => $order->participant->email,
+                    'phone' => $order->participant->phone,
+                    'gender' => $order->participant->gender,
+                    'photo_url' => $order->participant->photo ? asset('storage/' . $order->participant->photo) : null,
+                    'joined_at' => $order->created_at->toISOString(),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'event' => [
+                    'id' => $event->id,
+                    'title' => $event->title,
+                    'start_date' => $event->start_date->toISOString(),
+                ],
+                'total_participants' => $participants->count(),
+                'participants' => $participants
+            ]
+        ]);
+    }
+
+    /**
+     * Get participant count for an event (public)
+     * GET /api/v1/events/{id}/participants/count
+     */
+    public function participantCount($id)
+    {
+        $event = Event::findOrFail($id);
+        
+        $count = Order::where('event_id', $event->id)
+            ->whereIn('status', ['paid', 'free'])
+            ->count();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'event_id' => $event->id,
+                'event_title' => $event->title,
+                'participants_count' => $count
+            ]
+        ]);
+    }
 }

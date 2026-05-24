@@ -29,10 +29,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/events', 'index');
         Route::get('/events/{id}', 'show');
         Route::get('/events/slug/{slug}', 'showBySlug');
+        Route::get('/events/{id}/participants/count', 'participantCount');
         
         // Protected
         Route::post('/events/{id}/book', 'book')->middleware('auth:sanctum');
         Route::get('/my-events', 'myEvents')->middleware('auth:sanctum');
+        Route::get('/events/{id}/participants', 'participants')->middleware('auth:sanctum');
     });
     
     // ==================== CATEGORIES ====================
