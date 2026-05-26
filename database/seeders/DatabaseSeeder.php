@@ -35,7 +35,8 @@ class DatabaseSeeder extends Seeder
         $this->call([ 
             CategorySeeder::class,       // 2. Categories
             EventSeeder::class,          // 3. Events (depend on categories & users) ← HARUS SEBELUM ORDER
-            ParticipantSeeder::class,    // 4. Participants
+            ParticipantSeeder::class,
+            NonMemberParticipantSeeder::class,    // 4. Participants
             OrderSeeder::class,          // 5. Orders (depend on events & participants)
             PaymentSeeder::class,        // 6. Payments (depend on orders)  
         ]);

@@ -14,12 +14,18 @@ class Participant extends Authenticatable  // ← Ubah dari Model ke Authenticat
     protected $table = 'participants';
     
     protected $fillable = [
-        'hash_id',
+                'hash_id',
         'name',
         'email',
         'phone',
         'gender',
         'birthdate',
+        'blood_type',           // ← Tambahan
+        'emergency_contact',    // ← Tambahan
+        'emergency_phone',      // ← Tambahan
+        'allergy_history',      // ← Tambahan
+        'identity_number',      // ← Tambahan
+        'identity_photo',       // ← Tambahan
         'photo',
         'status',
         'last_login_at',
@@ -160,5 +166,26 @@ class Participant extends Authenticatable  // ← Ubah dari Model ke Authenticat
     public function getRememberTokenName()
     {
         return '';
+    }
+    /**
+     * Get identity photo URL
+     */
+    public function getIdentityPhotoUrlAttribute()
+    {
+        return $this->identity_photo ? asset('storage/' . $this->identity_photo) : null;
+    }
+
+    /**
+     * Get blood type label
+     */
+    public function getBloodTypeLabelAttribute()
+    {
+        $labels = [
+            'A' => 'A',
+            'B' => 'B',
+            'AB' => 'AB',
+            'O' => 'O'
+        ];
+        return $labels[$this->blood_type] ?? '-';
     }
 }
