@@ -197,20 +197,46 @@ class ParticipantService implements ParticipantServiceInterface
     }
 
     /**
-     * Regenerate hash ID
+     * Generate new hash ID with 4 digits
      */
     public function regenerateHashId($id)
     {
         $participant = Participant::findOrFail($id);
         
         $oldHashId = $participant->hash_id;
-        $newHashId = Participant::generateHashId();
         
-        $participant->update(['hash_id' => $newHashId]);
+        // Generate new sequential 4-digit hash ID
+        $lastParticipant = Participant::orderBy('id', 'desc')->first();
+        $lastId = (int) $lastParticipant->hash_id;
+        $newNumber = str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
+        
+        $participant->update(['hash_id' => $newNumber]);
         
         return [
             'old_hash_id' => $oldHashId,
-            'new_hash_id' => $newHashId
+            'new_hash_id' => $newNumber
+        ];
+    }
+
+    /**
+     * Generate random 4-digit hash ID
+     */
+    public function regenerateRandomHashId($id)
+    {
+        $participant = Participant::findOrFail($id);
+        
+        $oldHashId = $participant->hash_id;
+        
+        // Generate random 4-digit hash ID
+        do {
+            $random = str_pad(random_int(1, 9999), 4, '0', STR_PAD_LEFT);
+        } while (Participant::where('hash_id', $random)->exists());
+        
+        $participant->update(['hash_id' => $random]);
+        
+        return [
+            'old_hash_id' => $oldHashId,
+            'new_hash_id' => $random
         ];
     }
 

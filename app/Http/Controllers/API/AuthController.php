@@ -15,23 +15,33 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'hash_id' => 'required|string|exists:participants,hash_id'
+            'hash_id' => 'required|string'
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid Hash ID',
+                'message' => 'Hash ID is required',
                 'errors' => $validator->errors()
             ], 422);
         }
 
-        $participant = Participant::where('hash_id', $request->hash_id)->first();
+        // Ensure hash_id is 4 digits (support input like "1" -> "0001")
+        $hashId = str_pad($request->hash_id, 4, '0', STR_PAD_LEFT);
+        
+        $participant = Participant::where('hash_id', $hashId)->first();
+
+        if (!$participant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid Hash ID. Please enter 4-digit code (e.g., 0001, 0002)'
+            ], 401);
+        }
 
         if ($participant->status !== 'active') {
             return response()->json([
                 'success' => false,
-                'message' => 'Account is inactive. Please contact admin.'
+                'message' => 'Account is inactive'
             ], 403);
         }
 
@@ -41,14 +51,18 @@ class AuthController extends Controller
             'last_login_ip' => $request->ip()
         ]);
 
-        // Generate token
         $token = $participant->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
             'data' => [
-                'participant' => $participant,
+                'participant' => [
+                    'id' => $participant->id,
+                    'hash_id' => $participant->hash_id,
+                    'name' => $participant->name,
+                    'email' => $participant->email,
+                ],
                 'token' => $token,
                 'token_type' => 'Bearer'
             ]
