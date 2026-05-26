@@ -4,12 +4,11 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-class Participant extends Authenticatable  // ← Ubah dari Model ke Authenticatable
+class Participant extends Authenticatable
 {
-    use HasApiTokens;  // ← Tambahkan trait ini
+    use HasApiTokens;
     
     protected $table = 'participants';
     
@@ -32,7 +31,6 @@ class Participant extends Authenticatable  // ← Ubah dari Model ke Authenticat
         'last_login_at' => 'datetime'
     ];
 
-    // Sembunyikan ID dari response API
     protected $hidden = [
         'id'
     ];
@@ -48,21 +46,20 @@ class Participant extends Authenticatable  // ← Ubah dari Model ke Authenticat
 
     /**
      * Generate unique hash ID
-     * Format: SH3ID + 6 digit number (example: SH3ID000001)
+     * Format: 4 digit number (example: 0001, 0002, 0010, 0100, 1000, 9999)
      */
     public static function generateHashId(): string
     {
-        $prefix = 'SH3ID';
         $lastParticipant = static::orderBy('id', 'desc')->first();
         
         if ($lastParticipant && $lastParticipant->hash_id) {
-            $lastId = (int) substr($lastParticipant->hash_id, strlen($prefix));
-            $newId = str_pad($lastId + 1, 6, '0', STR_PAD_LEFT);
+            $lastId = (int) $lastParticipant->hash_id;
+            $newId = str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
         } else {
-            $newId = '000001';
+            $newId = '0001';
         }
         
-        return $prefix . $newId;
+        return $newId;
     }
 
     /**
@@ -70,14 +67,11 @@ class Participant extends Authenticatable  // ← Ubah dari Model ke Authenticat
      */
     public static function generateRandomHashId(): string
     {
-        $prefix = 'SH3ID';
-        
         do {
-            $random = Str::upper(Str::random(8));
-            $hashId = $prefix . $random;
-        } while (self::where('hash_id', $hashId)->exists());
+            $random = str_pad(random_int(1, 9999), 4, '0', STR_PAD_LEFT);
+        } while (self::where('hash_id', $random)->exists());
         
-        return $hashId;
+        return $random;
     }
 
     /**
@@ -85,6 +79,8 @@ class Participant extends Authenticatable  // ← Ubah dari Model ke Authenticat
      */
     public static function findByHashId($hashId)
     {
+        // Ensure hash_id is 4 digits (pad with zeros if needed)
+        $hashId = str_pad($hashId, 4, '0', STR_PAD_LEFT);
         return static::where('hash_id', $hashId)->first();
     }
 
