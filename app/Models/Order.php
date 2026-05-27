@@ -68,4 +68,9 @@ class Order extends Model
     {
         return $query->where('status', 'cancelled');
     }
+    
+    public function attendance()
+    {
+        return $this->hasOne(Attendance::class);
+    }
 }

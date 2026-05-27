@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Participant;
 use App\Services\ParticipantService\ParticipantServiceInterface;
 use Illuminate\Http\Request;
 
@@ -21,11 +22,8 @@ class ParticipantController extends Controller
     {
         $participants = $this->participantService->getParticipants($request);
         $stats = $this->participantService->getParticipantStats();
-        
-        return view('participants.index', array_merge(
-            compact('participants'),
-            $stats
-        ));
+
+        return view('participants.index', array_merge(compact('participants'), $stats));
     }
 
     /**
@@ -43,11 +41,13 @@ class ParticipantController extends Controller
     {
         try {
             $participant = $this->participantService->createParticipant($request->all());
-            
-            return redirect()->route('participants.index')
+
+            return redirect()
+                ->route('participants.index')
                 ->with('success', "Participant berhasil ditambahkan. Hash ID: {$participant->hash_id}");
         } catch (\Exception $e) {
-            return redirect()->back()
+            return redirect()
+                ->back()
                 ->withErrors(['error' => $e->getMessage()])
                 ->withInput();
         }
@@ -59,7 +59,7 @@ class ParticipantController extends Controller
     public function show($id)
     {
         $data = $this->participantService->getParticipantWithDetails($id);
-        
+
         return view('participants.show', $data);
     }
 
@@ -69,7 +69,7 @@ class ParticipantController extends Controller
     public function edit($id)
     {
         $participant = $this->participantService->getParticipantById($id);
-        
+
         return view('participants.edit', compact('participant'));
     }
 
@@ -80,11 +80,11 @@ class ParticipantController extends Controller
     {
         try {
             $this->participantService->updateParticipant($id, $request->all());
-            
-            return redirect()->route('participants.index')
-                ->with('success', 'Participant berhasil diupdate');
+
+            return redirect()->route('participants.index')->with('success', 'Participant berhasil diupdate');
         } catch (\Exception $e) {
-            return redirect()->back()
+            return redirect()
+                ->back()
                 ->withErrors(['error' => $e->getMessage()])
                 ->withInput();
         }
@@ -97,62 +97,61 @@ class ParticipantController extends Controller
     {
         try {
             $this->participantService->deleteParticipant($id);
-            
-            return redirect()->route('participants.index')
-                ->with('success', 'Participant berhasil dihapus');
+
+            return redirect()->route('participants.index')->with('success', 'Participant berhasil dihapus');
         } catch (\Exception $e) {
-            return redirect()->route('participants.index')
-                ->with('error', $e->getMessage());
+            return redirect()->route('participants.index')->with('error', $e->getMessage());
         }
     }
-    
+
     /**
      * Generate new hash ID for participant
      */
     public function regenerateHashId($id)
     {
         $result = $this->participantService->regenerateHashId($id);
-        
-        return redirect()->route('participants.show', $id)
+
+        return redirect()
+            ->route('participants.show', $id)
             ->with('success', "Hash ID berhasil diganti dari {$result['old_hash_id']} menjadi {$result['new_hash_id']}");
     }
-    
+
     /**
      * Toggle participant status (active/inactive)
      */
     public function toggleStatus($id)
     {
         $result = $this->participantService->toggleStatus($id);
-        
-        return redirect()->route('participants.index')
+
+        return redirect()
+            ->route('participants.index')
             ->with('success', "Participant berhasil {$result['message']}");
     }
-    
+
     /**
      * Export participants to CSV
      */
     public function export()
     {
         $result = $this->participantService->exportParticipantsToCsv();
-        
-        return response($result['content'])
-            ->withHeaders($result['headers']);
+
+        return response($result['content'])->withHeaders($result['headers']);
     }
-    
+
     /**
      * Search participants
      */
     public function search(Request $request)
     {
         $participants = $this->participantService->searchParticipants($request);
-        
+
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'data' => $participants
+                'data' => $participants,
             ]);
         }
-        
+
         return view('participants.index', compact('participants'));
     }
 
@@ -170,5 +169,29 @@ class ParticipantController extends Controller
     public function exportAllPdf(Request $request)
     {
         return $this->participantService->exportParticipantsToPdf($request);
+    }
+
+     /**
+     * Upgrade non-member to member
+     */
+    public function upgradeToMember($id)
+    {
+        $participant = Participant::findOrFail($id);  // ← Gunakan App\Models\Participant
+        
+        if ($participant->participant_type === 'member') {
+            return redirect()->route('participants.index')
+                ->with('error', 'Participant sudah menjadi member');
+        }
+        
+        // Generate new hash ID for member using model method
+        $newHashId = Participant::generateMemberHashId();  // ← Panggil method dari model
+        
+        $participant->update([
+            'participant_type' => 'member',
+            'hash_id' => $newHashId
+        ]);
+        
+        return redirect()->route('participants.index')
+            ->with('success', "Participant berhasil di-upgrade menjadi member dengan Hash ID: {$newHashId}");
     }
 }

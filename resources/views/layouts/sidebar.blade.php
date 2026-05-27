@@ -23,32 +23,97 @@
             <span>Dashboard</span>
         </a>
 
-        <!-- Events -->
-        <a href="{{ route('events.index') }}"
-           class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('events.*') ? 'bg-green-500/20 text-green-300' : '' }}">
-            <svg class="w-5 h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5m-9-6h.008v.008H12v-.008zM12 15h.008v.008H12V15zm0-2.25h.008v.008H12v-.008zM9.75 15h.008v.008H9.75V15zm0-2.25h.008v.008H9.75v-.008zM7.5 15h.008v.008H7.5V15zm0-2.25h.008v.008H7.5v-.008zM14.25 15h.008v.008H14.25V15zm0-2.25h.008v.008H14.25v-.008zM16.5 15h.008v.008H16.5V15zm0-2.25h.008v.008H16.5v-.008z"/>
-            </svg>
-            <span>Events</span>
-        </a>
+        <!-- Products Dropdown (Events + Merchandise) -->
+        <div x-data="{ open: {{ request()->routeIs('events.*') || request()->routeIs('merchandise.index') ? 'true' : 'false' }} }" class="relative">
+            <button @click="open = !open" 
+                    class="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group">
+                <div class="flex items-center gap-3">
+                    <svg class="w-5 h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M12 3a3.75 3.75 0 00-3.75 3.75h7.5A3.75 3.75 0 0012 3z"/>
+                    </svg>
+                    <span>Products</span>
+                </div>
+                <svg class="w-4 h-4 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                </svg>
+            </button>
 
-        <!-- Categories -->
-        <a href="{{ route('categories.index') }}"
-           class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('categories.*') ? 'bg-green-500/20 text-green-300' : '' }}">
-            <svg class="w-5 h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/>
-            </svg>
-            <span>Categories</span>
-        </a>
+            <div x-show="open" 
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 transform -translate-y-2"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 transform translate-y-0"
+                 x-transition:leave-end="opacity-0 transform -translate-y-2"
+                 class="ml-9 mt-1 space-y-1">
+                
+                <!-- Events -->
+                <a href="{{ route('events.index') }}"
+                   class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group text-sm {{ request()->routeIs('events.*') ? 'bg-green-500/20 text-green-300' : '' }}">
+                    <svg class="w-4 h-4 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/>
+                    </svg>
+                    <span>Events</span>
+                </a>
 
-        <!-- Orders -->
-        <a href="{{ route('orders.index') }}"
-           class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('orders.*') ? 'bg-green-500/20 text-green-300' : '' }}">
-            <svg class="w-5 h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z"/>
-            </svg>
-            <span>Orders</span>
-        </a>
+                <!-- Merchandise -->
+                @if(auth()->user() && auth()->user()->role === 'admin')
+                <a href="{{ route('merchandise.index') }}"
+                   class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group text-sm {{ request()->routeIs('merchandise.index') ? 'bg-green-500/20 text-green-300' : '' }}">
+                    <svg class="w-4 h-4 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                    </svg>
+                    <span>Merchandise</span>
+                </a>
+                @endif
+            </div>
+        </div>
+
+        <!-- Orders Dropdown (Event Orders + Merchandise Orders) -->
+        <div x-data="{ open: {{ request()->routeIs('orders.*') || request()->routeIs('merchandise.orders*') ? 'true' : 'false' }} }" class="relative">
+            <button @click="open = !open" 
+                    class="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group">
+                <div class="flex items-center gap-3">
+                    <svg class="w-5 h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.5c.36 0 .69.146.937.407M2.25 3h1.5c.36 0 .69.146.937.407M2.25 3L3 14.25M3.75 7.5h16.5M3.75 7.5L3 14.25m0 0h15.75M4.5 21h15a2.25 2.25 0 002.25-2.25V14.25m-16.5 0h16.5M6.75 18.75h.008v.008H6.75v-.008zm4.5 0h.008v.008h-.008v-.008zm4.5 0h.008v.008h-.008v-.008z"/>
+                    </svg>
+                    <span>Orders</span>
+                </div>
+                <svg class="w-4 h-4 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                </svg>
+            </button>
+
+            <div x-show="open" 
+                 x-transition:enter="transition ease-out duration-200"
+                 x-transition:enter-start="opacity-0 transform -translate-y-2"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 x-transition:leave="transition ease-in duration-150"
+                 x-transition:leave-start="opacity-100 transform translate-y-0"
+                 x-transition:leave-end="opacity-0 transform -translate-y-2"
+                 class="ml-9 mt-1 space-y-1">
+                
+                <!-- Event Orders -->
+                <a href="{{ route('orders.index') }}"
+                   class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group text-sm {{ request()->routeIs('orders.index') ? 'bg-green-500/20 text-green-300' : '' }}">
+                    <svg class="w-4 h-4 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5h14a2 2 0 012 2v3a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2zm0 8h14a2 2 0 012 2v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3a2 2 0 012-2z"/>
+                    </svg>
+                    <span>Event Orders</span>
+                </a>
+
+                <!-- Merchandise Orders -->
+                @if(auth()->user() && auth()->user()->role === 'admin')
+                <a href="{{ route('merchandise.orders') }}"
+                   class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group text-sm {{ request()->routeIs('merchandise.orders*') ? 'bg-green-500/20 text-green-300' : '' }}">
+                    <svg class="w-4 h-4 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                    </svg>
+                    <span>Merchandise Orders</span>
+                </a>
+                @endif
+            </div>
+        </div>
 
         <!-- Payments -->
         <a href="{{ route('payments.index') }}"
@@ -67,6 +132,17 @@
             </svg>
             <span>Gallery</span>
         </a>
+
+        <!-- Sponsors Menu (Admin Only) -->
+        @if(auth()->user() && auth()->user()->role === 'admin')
+        <a href="{{ route('sponsors.index') }}"
+           class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('sponsors.*') ? 'bg-green-500/20 text-green-300' : '' }}">
+            <svg class="w-5 h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            <span>Sponsors</span>
+        </a>
+        @endif
 
         <!-- Participants Menu (Admin Only) -->
         @if(auth()->user() && auth()->user()->role === 'admin')
@@ -122,3 +198,6 @@
     </div>
 
 </aside>
+
+<!-- Add Alpine.js for dropdown functionality -->
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>

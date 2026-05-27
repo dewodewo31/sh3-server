@@ -26,15 +26,15 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Ensure hash_id is 4 digits (support input like "1" -> "0001")
-        $hashId = str_pad($request->hash_id, 4, '0', STR_PAD_LEFT);
+        $hashId = $request->hash_id;
         
+        // Cari participant berdasarkan hash_id
         $participant = Participant::where('hash_id', $hashId)->first();
 
         if (!$participant) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid Hash ID. Please enter 4-digit code (e.g., 0001, 0002)'
+                'message' => 'Invalid Hash ID'
             ], 401);
         }
 
@@ -62,6 +62,7 @@ class AuthController extends Controller
                     'hash_id' => $participant->hash_id,
                     'name' => $participant->name,
                     'email' => $participant->email,
+                    'participant_type' => $participant->participant_type
                 ],
                 'token' => $token,
                 'token_type' => 'Bearer'
@@ -70,9 +71,9 @@ class AuthController extends Controller
     }
 
     /**
-     * Register new participant
+     * Register new participant (default: non_member)
      */
-   public function register(Request $request)
+    public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -80,6 +81,13 @@ class AuthController extends Controller
             'phone' => 'required|string|max:15',
             'gender' => 'required|in:male,female',
             'birthdate' => 'required|date|before:today',
+            'participant_type' => 'sometimes|in:member,non_member', // Optional, default non_member
+            'blood_type' => 'nullable|in:A,B,AB,O',
+            'emergency_contact' => 'nullable|string|max:255',
+            'emergency_phone' => 'nullable|string|max:15',
+            'allergy_history' => 'nullable|string',
+            'identity_number' => 'nullable|string|max:50',
+            'identity_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
@@ -91,33 +99,93 @@ class AuthController extends Controller
             ], 422);
         }
 
+        // Default participant type = non_member
+        $participantType = $request->participant_type ?? 'non_member';
+        
         $data = [
+            'participant_type' => $participantType,
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'gender' => $request->gender,
             'birthdate' => $request->birthdate,
+            'blood_type' => $request->blood_type,
+            'emergency_contact' => $request->emergency_contact,
+            'emergency_phone' => $request->emergency_phone,
+            'allergy_history' => $request->allergy_history,
+            'identity_number' => $request->identity_number,
             'status' => 'active'
         ];
 
-        // Handle photo upload
+        // Handle identity photo upload
+        if ($request->hasFile('identity_photo')) {
+            $identityPhotoPath = $request->file('identity_photo')->store('identities', 'public');
+            $data['identity_photo'] = $identityPhotoPath;
+        }
+
+        // Handle profile photo upload
         if ($request->hasFile('photo')) {
             $photoPath = $request->file('photo')->store('participants', 'public');
             $data['photo'] = $photoPath;
         }
 
         $participant = Participant::create($data);
+        
+        // Non-member tetap hash_id = 0, member auto-generate
+        if ($participantType === 'non_member') {
+            $participant->hash_id = '0000';
+            $participant->save();
+        }
+        
         $token = $participant->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'success' => true,
             'message' => 'Registration successful',
             'data' => [
-                'participant' => $participant,
+                'participant' => [
+                    'id' => $participant->id,
+                    'hash_id' => $participant->hash_id,
+                    'name' => $participant->name,
+                    'email' => $participant->email,
+                    'participant_type' => $participant->participant_type
+                ],
                 'token' => $token,
                 'token_type' => 'Bearer'
             ]
         ], 201);
+    }
+
+    /**
+     * Upgrade non-member to member
+     */
+    public function upgradeToMember(Request $request)
+    {
+        $participant = $request->user();
+        
+        if ($participant->participant_type === 'member') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Already a member'
+            ], 400);
+        }
+        
+        // Generate new hash_id for member
+        $newHashId = Participant::generateHashId();
+        
+        $participant->update([
+            'participant_type' => 'member',
+            'hash_id' => $newHashId
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Successfully upgraded to member',
+            'data' => [
+                'hash_id' => $newHashId,
+                'participant_type' => 'member'
+            ]
+        ]);
     }
 
     /**
@@ -146,4 +214,4 @@ class AuthController extends Controller
             'data' => $participant
         ]);
     }
-}   
+}

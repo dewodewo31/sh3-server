@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AttendanceController;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\EventController;
@@ -8,7 +9,10 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\EventGalleryController;
+use App\Http\Controllers\MerchandiseController;
+use App\Http\Controllers\MerchandiseOrderController;
 use App\Http\Controllers\ParticipantController;
+use App\Http\Controllers\SponsorController;
 use App\Http\Controllers\UserController;
 
 /*
@@ -48,6 +52,9 @@ Route::middleware(['auth', 'role:admin,organizer'])->group(function () {
     Route::post('orders/{order}/update-payment', [OrderController::class, 'updatePaymentProof'])->name('orders.update-payment');
     Route::get('orders/export/csv', [OrderController::class, 'export'])->name('orders.export');
     
+    Route::resource('sponsors', SponsorController::class);
+    Route::post('sponsors/{sponsor}/toggle-status', [SponsorController::class, 'toggleStatus'])->name('sponsors.toggle-status');
+
     // Order Export PDF
     Route::get('orders/{order}/export-invoice', [OrderController::class, 'exportInvoicePdf'])->name('orders.export-invoice');
     Route::get('orders/export/all/pdf', [OrderController::class, 'exportAllPdf'])->name('orders.export-all-pdf');
@@ -67,6 +74,29 @@ Route::middleware(['auth', 'role:admin,organizer'])->group(function () {
     Route::get('events/{event}/export-brochure', [EventController::class, 'exportBrochurePdf'])->name('events.export-brochure');
     Route::get('events/export/all/pdf', [EventController::class, 'exportAllPdf'])->name('events.export-all-pdf');
     
+    // Participant routes
+    Route::get('attendance/{eventId}/qrcode', [AttendanceController::class, 'showQrCode'])->name('attendance.qrcode');
+    
+    // Scanner routes (admin/organizer)
+    Route::get('attendance/scanner', [AttendanceController::class, 'scanner'])->name('attendance.scanner');
+    Route::get('attendance/scan/{qrCode}', [AttendanceController::class, 'scan'])->name('attendance.scan');
+    
+    // API for scanner
+    Route::get('attendance/status/{qrCode}', [AttendanceController::class, 'getStatus'])->name('attendance.status');
+    
+    // Event attendance list (admin/owner)
+    Route::get('events/{event}/attendance', [AttendanceController::class, 'eventAttendance'])->name('attendance.event-list');
+    Route::get('events/{event}/attendance/export', [AttendanceController::class, 'export'])->name('attendance.export');
+
+    Route::resource('merchandise', MerchandiseController::class);
+    Route::post('merchandise/{merchandise}/update-stock', [MerchandiseController::class, 'updateStock'])->name('merchandise.update-stock');
+    Route::post('merchandise/{merchandise}/toggle-status', [MerchandiseController::class, 'toggleStatus'])->name('merchandise.toggle-status');
+    
+    // Merchandise Orders
+    Route::get('merchandise-orders', [MerchandiseOrderController::class, 'index'])->name('merchandise.orders');
+    Route::get('merchandise-orders/{order}', [MerchandiseOrderController::class, 'show'])->name('merchandise.orders.show');
+    Route::post('merchandise-orders/{order}/update-status', [MerchandiseOrderController::class, 'updateStatus'])->name('merchandise.orders.update-status');
+
     // Logout
     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
 });
@@ -91,6 +121,10 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::post('participants/{participant}/toggle-status', [ParticipantController::class, 'toggleStatus'])
         ->name('participants.toggle-status');
     
+    // 👇 NEW: Upgrade non-member to member
+    Route::get('participants/{participant}/upgrade-to-member', [ParticipantController::class, 'upgradeToMember'])
+        ->name('participants.upgrade-to-member');
+    
     Route::get('participants/export/csv', [ParticipantController::class, 'export'])
         ->name('participants.export');
     
@@ -103,4 +137,5 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     
     Route::get('participants/export/all/pdf', [ParticipantController::class, 'exportAllPdf'])
         ->name('participants.export-all-pdf');
+
 });

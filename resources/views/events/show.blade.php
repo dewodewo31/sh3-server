@@ -88,7 +88,7 @@
                 </div>
 
                 <!-- Action Buttons -->
-                <div class="flex gap-2">
+                <div class="flex gap-2 flex-wrap">
                     <a href="{{ route('events.edit', $event) }}"
                         class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,6 +97,7 @@
                         </svg>
                         Edit Event
                     </a>
+
                     <form action="{{ route('events.destroy', $event) }}" method="POST" class="inline">
                         @csrf
                         @method('DELETE')
@@ -109,6 +110,7 @@
                             Hapus
                         </button>
                     </form>
+
                     <a href="{{ route('events.export-brochure', $event) }}"
                         class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,6 +119,36 @@
                         </svg>
                         Export Brochure PDF
                     </a>
+
+                    <!-- ========== TOMBOL SCANNER (UNTUK ADMIN/ORGANIZER) ========== -->
+                    @if (auth()->user() &&
+                            (auth()->user()->role === 'admin' ||
+                                (auth()->user()->role === 'organizer' && $event->created_by === auth()->id())))
+                        <a href="{{ route('attendance.scanner') }}?event_id={{ $event->id }}"
+                            class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Scan QR Code
+                        </a>
+                    @endif
+
+                    <!-- ========== TOMBOL ATTENDANCE LIST (UNTUK ADMIN/ORGANIZER) ========== -->
+                    @if (auth()->user() &&
+                            (auth()->user()->role === 'admin' ||
+                                (auth()->user()->role === 'organizer' && $event->created_by === auth()->id())))
+                        <a href="{{ route('attendance.event-list', $event) }}"
+                            class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            Attendance List
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -162,7 +194,178 @@
                 </div>
             @endif
 
-            <!-- Peta Lokasi - Dipindahkan ke sini (lebih besar dan full width) -->
+            <!-- SPONSORS SECTION - TAMPILAN SPONSOR -->
+            @if ($event->sponsors && $event->sponsors->count() > 0)
+                <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
+                    <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        Didukung Oleh
+                    </h2>
+
+                    <!-- Platinum Sponsors -->
+                    @php $platinumSponsors = $event->sponsors->where('tier', 'platinum'); @endphp
+                    @if ($platinumSponsors->count() > 0)
+                        <div class="mb-6">
+                            <h3 class="text-md font-semibold text-purple-400 mb-3 flex items-center gap-2">
+                                <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
+                                Platinum Sponsor
+                            </h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                @foreach ($platinumSponsors as $sponsor)
+                                    <div class="bg-white/5 rounded-lg p-4 text-center hover:bg-white/10 transition group">
+                                        @if ($sponsor->logo)
+                                            <img src="{{ Storage::url($sponsor->logo) }}"
+                                                class="w-20 h-20 mx-auto object-contain mb-2">
+                                        @else
+                                            <div
+                                                class="w-20 h-20 mx-auto bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-full flex items-center justify-center mb-2">
+                                                <svg class="w-10 h-10 text-purple-400" fill="none"
+                                                    stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                </svg>
+                                            </div>
+                                        @endif
+                                        <p class="font-semibold text-white group-hover:text-purple-400 transition">
+                                            {{ $sponsor->name }}</p>
+                                        @if ($sponsor->website)
+                                            <a href="{{ $sponsor->website }}" target="_blank"
+                                                class="text-xs text-gray-400 hover:text-green-400">Visit Website</a>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Gold Sponsors -->
+                    @php $goldSponsors = $event->sponsors->where('tier', 'gold'); @endphp
+                    @if ($goldSponsors->count() > 0)
+                        <div class="mb-6">
+                            <h3 class="text-md font-semibold text-yellow-400 mb-3 flex items-center gap-2">
+                                <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                                Gold Sponsor
+                            </h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                @foreach ($goldSponsors as $sponsor)
+                                    <div class="bg-white/5 rounded-lg p-4 text-center hover:bg-white/10 transition group">
+                                        @if ($sponsor->logo)
+                                            <img src="{{ Storage::url($sponsor->logo) }}"
+                                                class="w-16 h-16 mx-auto object-contain mb-2">
+                                        @else
+                                            <div
+                                                class="w-16 h-16 mx-auto bg-gradient-to-br from-yellow-500/20 to-yellow-600/20 rounded-full flex items-center justify-center mb-2">
+                                                <svg class="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                </svg>
+                                            </div>
+                                        @endif
+                                        <p class="font-semibold text-white group-hover:text-yellow-400 transition">
+                                            {{ $sponsor->name }}</p>
+                                        @if ($sponsor->website)
+                                            <a href="{{ $sponsor->website }}" target="_blank"
+                                                class="text-xs text-gray-400 hover:text-green-400">Visit Website</a>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Silver Sponsors -->
+                    @php $silverSponsors = $event->sponsors->where('tier', 'silver'); @endphp
+                    @if ($silverSponsors->count() > 0)
+                        <div class="mb-6">
+                            <h3 class="text-md font-semibold text-gray-400 mb-3 flex items-center gap-2">
+                                <span class="w-2 h-2 bg-gray-500 rounded-full"></span>
+                                Silver Sponsor
+                            </h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                @foreach ($silverSponsors as $sponsor)
+                                    <div class="bg-white/5 rounded-lg p-4 text-center hover:bg-white/10 transition group">
+                                        @if ($sponsor->logo)
+                                            <img src="{{ Storage::url($sponsor->logo) }}"
+                                                class="w-14 h-14 mx-auto object-contain mb-2">
+                                        @else
+                                            <div
+                                                class="w-14 h-14 mx-auto bg-gradient-to-br from-gray-500/20 to-gray-600/20 rounded-full flex items-center justify-center mb-2">
+                                                <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                </svg>
+                                            </div>
+                                        @endif
+                                        <p class="font-semibold text-white group-hover:text-gray-300 transition">
+                                            {{ $sponsor->name }}</p>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Bronze Sponsors -->
+                    @php $bronzeSponsors = $event->sponsors->where('tier', 'bronze'); @endphp
+                    @if ($bronzeSponsors->count() > 0)
+                        <div class="mb-6">
+                            <h3 class="text-md font-semibold text-orange-400 mb-3 flex items-center gap-2">
+                                <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
+                                Bronze Sponsor
+                            </h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                @foreach ($bronzeSponsors as $sponsor)
+                                    <div class="bg-white/5 rounded-lg p-4 text-center hover:bg-white/10 transition group">
+                                        @if ($sponsor->logo)
+                                            <img src="{{ Storage::url($sponsor->logo) }}"
+                                                class="w-12 h-12 mx-auto object-contain mb-2">
+                                        @else
+                                            <div
+                                                class="w-12 h-12 mx-auto bg-gradient-to-br from-orange-500/20 to-orange-600/20 rounded-full flex items-center justify-center mb-2">
+                                                <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                </svg>
+                                            </div>
+                                        @endif
+                                        <p class="font-semibold text-white group-hover:text-orange-400 transition">
+                                            {{ $sponsor->name }}</p>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Partner Sponsors -->
+                    @php $partnerSponsors = $event->sponsors->where('tier', 'partner'); @endphp
+                    @if ($partnerSponsors->count() > 0)
+                        <div class="mb-6">
+                            <h3 class="text-md font-semibold text-blue-400 mb-3 flex items-center gap-2">
+                                <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                Media Partner
+                            </h3>
+                            <div class="flex flex-wrap gap-4 justify-center">
+                                @foreach ($partnerSponsors as $sponsor)
+                                    <div class="bg-white/5 rounded-lg px-4 py-2 text-center hover:bg-white/10 transition">
+                                        @if ($sponsor->logo)
+                                            <img src="{{ Storage::url($sponsor->logo) }}"
+                                                class="h-8 object-contain inline-block mr-2">
+                                        @endif
+                                        <span class="text-gray-300">{{ $sponsor->name }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                </div>
+            @endif
+
+            <!-- Peta Lokasi -->
             @if ($event->latitude && $event->longitude)
                 <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
                     <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
@@ -172,7 +375,8 @@
                         </svg>
                         Peta Lokasi Event
                     </h2>
-                    <div id="eventMap" style="height: 400px; border-radius: 0.75rem; z-index: 1; background: #1a1a1a;"></div>
+                    <div id="eventMap" style="height: 400px; border-radius: 0.75rem; z-index: 1; background: #1a1a1a;">
+                    </div>
                     <p class="text-xs text-gray-400 text-center mt-3">
                         <a href="https://www.openstreetmap.org/?mlat={{ $event->latitude }}&mlon={{ $event->longitude }}#map=15/{{ $event->latitude }}/{{ $event->longitude }}"
                             target="_blank" class="text-green-400 hover:text-green-300 transition">
@@ -185,7 +389,8 @@
                         @if ($event->maps_link)
                             | <a href="{{ $event->maps_link }}" target="_blank"
                                 class="text-green-400 hover:text-green-300 transition">
-                                <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                                 </svg>
@@ -204,7 +409,8 @@
                         Lokasi Event
                     </h2>
                     <div class="bg-black/20 rounded-lg p-6 text-center">
-                        <svg class="w-12 h-12 mx-auto mb-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-12 h-12 mx-auto mb-3 text-gray-500" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round"
                                 d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -289,21 +495,31 @@
                         </div>
                     </div>
 
-                   <!-- Duration -->
+                    <!-- Duration -->
                     <div class="flex items-start gap-3">
-                        <svg class="w-5 h-5 text-green-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <svg class="w-5 h-5 text-green-400 mt-0.5" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div>
                             <p class="text-gray-400 text-sm">Durasi</p>
                             <p class="text-white font-semibold">
-                                @if($event->start_date->isSameDay($event->end_date))
-                                    {{ $event->start_date->format('H:i') }} - {{ $event->end_date->format('H:i') }} WIB
+                                @php
+                                    $start = $event->start_date;
+                                    $end = $event->end_date;
+                                    // Hitung jumlah hari dengan pembulatan ke atas (ceil)
+                                    $diffInSeconds = $start->diffInSeconds($end);
+                                    $totalDays = ceil($diffInSeconds / 86400); // 86400 detik dalam sehari
+                                @endphp
+
+                                @if ($start->isSameDay($end))
+                                    {{ $start->format('H:i') }} - {{ $end->format('H:i') }} WIB
                                     <span class="text-xs text-gray-400 block">(Satu hari)</span>
                                 @else
-                                    {{ $event->start_date->diffInDays($event->end_date) + 1 }} Hari
+                                    {{ $totalDays }} Hari
                                     <span class="text-xs text-gray-400 block">
-                                        {{ $event->start_date->format('d M Y H:i') }} - {{ $event->end_date->format('d M Y H:i') }}
+                                        {{ $start->format('d M Y H:i') }} - {{ $end->format('d M Y H:i') }} WIB
                                     </span>
                                 @endif
                             </p>
@@ -370,6 +586,65 @@
                         </div>
                     </div>
                 </div>
+            </div>
+            <!-- Di bagian sidebar (Right Column), setelah Event Info Card -->
+            <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
+                <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                    Merchandise
+                </h3>
+
+                @if ($event->merchandise && $event->merchandise->count() > 0)
+                    <div class="space-y-3">
+                        @foreach ($event->merchandise as $merch)
+                            <div class="bg-white/5 rounded-lg p-3 hover:bg-white/10 transition">
+                                <div class="flex gap-3">
+                                    @if ($merch->image)
+                                        <img src="{{ Storage::url($merch->image) }}"
+                                            class="w-16 h-16 rounded-lg object-cover">
+                                    @else
+                                        <div class="w-16 h-16 bg-gray-700 rounded-lg flex items-center justify-center">
+                                            <svg class="w-8 h-8 text-gray-500" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                            </svg>
+                                        </div>
+                                    @endif
+
+                                    <div class="flex-1">
+                                        <p class="font-semibold text-white text-sm">{{ $merch->name }}</p>
+
+                                        @if ($merch->pivot->discount_price)
+                                            <p class="text-green-400 font-bold text-sm">
+                                                Rp {{ number_format($merch->pivot->discount_price, 0, ',', '.') }}
+                                            </p>
+                                            <p class="text-xs text-gray-500 line-through">
+                                                Rp {{ number_format($merch->price, 0, ',', '.') }}
+                                            </p>
+                                        @else
+                                            <p class="text-green-400 font-bold text-sm">
+                                                {{ $merch->formatted_price }}
+                                            </p>
+                                        @endif
+
+                                        @php
+                                            $stock = $merch->pivot->event_stock ?? $merch->stock;
+                                        @endphp
+                                        <p class="text-xs {{ $stock > 0 ? 'text-green-400' : 'text-red-400' }}">
+                                            Stok: {{ $stock > 0 ? $stock : 'Habis' }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-gray-400 text-center py-4">Belum ada merchandise untuk event ini</p>
+                @endif
             </div>
         </div>
     </div>

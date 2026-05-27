@@ -64,136 +64,57 @@
     </div>
 </div>
 
+<!-- CHARTS SECTION -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-    <!-- Upcoming Events -->
-    <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                Upcoming Events
-            </h3>
-            <a href="{{ route('events.index') }}" class="text-green-400 hover:text-green-300 text-sm">Lihat semua →</a>
-        </div>
-        
-        @forelse($upcomingEvents as $event)
-        <div class="bg-white/5 rounded-lg p-3 mb-2 hover:bg-white/10 transition">
-            <div class="flex justify-between items-start">
-                <div class="flex-1">
-                    <p class="font-semibold text-white">{{ $event->title }}</p>
-                    <p class="text-xs text-gray-400">{{ $event->date->format('d M Y, H:i') }} • {{ $event->location }}</p>
-                    <div class="mt-1">
-                        <div class="flex justify-between text-xs text-gray-400 mb-1">
-                            <span>Kuota: {{ $event->registered }}/{{ $event->quota }}</span>
-                            <span>{{ $event->percentage }}%</span>
-                        </div>
-                        <div class="w-full bg-white/10 rounded-full h-1.5">
-                            <div class="bg-green-500 h-1.5 rounded-full" style="width: {{ $event->percentage }}%"></div>
-                        </div>
-                    </div>
-                </div>
-                <span class="px-2 py-1 bg-yellow-500/20 text-yellow-300 rounded-full text-xs ml-2">Upcoming</span>
-            </div>
-        </div>
-        @empty
-        <p class="text-gray-400 text-center py-4">Tidak ada event yang akan datang</p>
-        @endforelse
-    </div>
-    
-    <!-- Ongoing Events -->
+    <!-- Participant Registration Chart -->
     <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-bold text-white flex items-center gap-2">
                 <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
-                </svg>
-                Ongoing Events
-            </h3>
-        </div>
-        
-        @forelse($ongoingEvents as $event)
-        <div class="bg-white/5 rounded-lg p-3 mb-2 hover:bg-white/10 transition">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="font-semibold text-white">{{ $event->title }}</p>
-                    <p class="text-xs text-gray-400">Sisa {{ $event->remaining_days }} hari • {{ $event->location }}</p>
-                    <p class="text-xs text-green-400 mt-1">{{ number_format($event->registered) }} peserta</p>
-                </div>
-                <span class="px-2 py-1 bg-green-500/20 text-green-300 rounded-full text-xs">Ongoing</span>
-            </div>
-        </div>
-        @empty
-        <p class="text-gray-400 text-center py-4">Tidak ada event yang sedang berlangsung</p>
-        @endforelse
-    </div>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-    <!-- History Events -->
-    <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                Event History (Selesai)
-            </h3>
-            <a href="{{ route('events.index') }}?status=finished" class="text-green-400 hover:text-green-300 text-sm">Lihat semua →</a>
-        </div>
-        
-        @forelse($historyEvents as $event)
-        <div class="bg-white/5 rounded-lg p-3 mb-2 hover:bg-white/10 transition">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="font-semibold text-white">{{ $event->title }}</p>
-                    <p class="text-xs text-gray-400">{{ $event->date->format('d M Y') }} • {{ $event->location }}</p>
-                    <div class="flex gap-3 mt-1 text-xs">
-                        <span class="text-green-400">{{ number_format($event->registered) }} peserta</span>
-                        <span class="text-yellow-400">Rp {{ number_format($event->revenue, 0, ',', '.') }}</span>
-                    </div>
-                </div>
-                <span class="px-2 py-1 bg-gray-500/20 text-gray-300 rounded-full text-xs">Selesai</span>
-            </div>
-        </div>
-        @empty
-        <p class="text-gray-400 text-center py-4">Belum ada event yang selesai</p>
-        @endforelse
-    </div>
-    
-    <!-- Recent Participants -->
-    <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
                 </svg>
-                Recent Participants
+                Participant Registration Trend
             </h3>
-            <a href="{{ route('participants.index') }}" class="text-green-400 hover:text-green-300 text-sm">Lihat semua →</a>
+            <div class="text-xs text-gray-400">Last 6 months</div>
         </div>
-        
-        @forelse($recentParticipants as $participant)
-        <div class="bg-white/5 rounded-lg p-3 mb-2 hover:bg-white/10 transition">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="font-semibold text-white">{{ $participant->name }}</p>
-                    <p class="text-xs text-gray-400">{{ $participant->email }} • {{ $participant->hash_id }}</p>
-                    <p class="text-xs text-green-400 mt-1">Last event: {{ $participant->last_event }}</p>
-                </div>
-                <div class="text-right">
-                    <span class="px-2 py-1 bg-green-500/20 text-green-300 rounded-full text-xs">{{ $participant->total_orders }} orders</span>
-                </div>
-            </div>
+        <canvas id="participantChart" height="250"></canvas>
+    </div>
+
+    <!-- Revenue Chart -->
+    <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Revenue Trend
+            </h3>
+            <div class="text-xs text-gray-400">Last 6 months</div>
         </div>
-        @empty
-        <p class="text-gray-400 text-center py-4">Belum ada participant</p>
-        @endforelse
+        <canvas id="revenueChart" height="250"></canvas>
     </div>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-    <!-- Top Events -->
+<!-- Order Status Chart & Top Events -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Order Status Distribution -->
+    <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
+        <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            Order Status Distribution
+        </h3>
+        <canvas id="orderStatusChart" height="250"></canvas>
+        <div class="flex justify-center gap-4 mt-4 text-xs">
+            <div class="flex items-center gap-1"><span class="w-3 h-3 bg-yellow-500 rounded-full"></span><span class="text-gray-400">Pending</span></div>
+            <div class="flex items-center gap-1"><span class="w-3 h-3 bg-green-500 rounded-full"></span><span class="text-gray-400">Paid</span></div>
+            <div class="flex items-center gap-1"><span class="w-3 h-3 bg-blue-500 rounded-full"></span><span class="text-gray-400">Free</span></div>
+            <div class="flex items-center gap-1"><span class="w-3 h-3 bg-red-500 rounded-full"></span><span class="text-gray-400">Cancelled</span></div>
+        </div>
+    </div>
+
+    <!-- Top Events (Most Registered) -->
     <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
         <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,7 +136,9 @@
         </div>
         @endforeach
     </div>
-    
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
     <!-- Recent Orders -->
     <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
         <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
@@ -262,7 +185,6 @@
             </div>
             <div class="text-right">
                 <p class="text-yellow-400 font-semibold">Rp {{ number_format($payment->amount, 0, ',', '.') }}</p>
-                <!-- Perbaikan: arahkan ke halaman detail ORDER, bukan payment -->
                 <a href="{{ route('orders.show', $payment->order_id) }}" class="text-blue-400 hover:text-blue-300 text-xs">Verifikasi</a>
             </div>
         </div>
@@ -271,4 +193,154 @@
         @endforelse
     </div>
 </div>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Participant Registration Chart (Line Chart)
+        const participantCtx = document.getElementById('participantChart').getContext('2d');
+        new Chart(participantCtx, {
+            type: 'line',
+            data: {
+                labels: {!! json_encode(array_column($participantChart, 'month')) !!},
+                datasets: [{
+                    label: 'New Participants',
+                    data: {!! json_encode(array_column($participantChart, 'count')) !!},
+                    borderColor: '#4CAF50',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#4CAF50',
+                    pointBorderColor: '#fff',
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        labels: { color: '#fff' }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Participants: ${context.raw}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#fff', stepSize: 1 }
+                    },
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#fff' }
+                    }
+                }
+            }
+        });
+
+        // Revenue Chart (Bar Chart)
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        new Chart(revenueCtx, {
+            type: 'bar',
+            data: {
+                labels: {!! json_encode(array_column($revenueChart, 'month')) !!},
+                datasets: [{
+                    label: 'Revenue (Rp)',
+                    data: {!! json_encode(array_column($revenueChart, 'revenue')) !!},
+                    backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                    borderColor: '#FFC107',
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    barPercentage: 0.65
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        labels: { color: '#fff' }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Revenue: Rp ${context.raw.toLocaleString('id-ID')}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { 
+                            color: '#fff',
+                            callback: function(value) {
+                                return 'Rp ' + value.toLocaleString('id-ID');
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#fff' }
+                    }
+                }
+            }
+        });
+
+        // Order Status Distribution (Doughnut Chart)
+        const orderStatusCtx = document.getElementById('orderStatusChart').getContext('2d');
+        new Chart(orderStatusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Pending', 'Paid', 'Free', 'Cancelled'],
+                datasets: [{
+                    data: [
+                        {{ $pendingOrders ?? 0 }},
+                        {{ $paidOrders ?? 0 }},
+                        {{ $freeOrders ?? 0 }},
+                        {{ $cancelledOrders ?? 0 }}
+                    ],
+                    backgroundColor: [
+                        '#FFC107', // Pending - Yellow
+                        '#4CAF50', // Paid - Green
+                        '#2196F3', // Free - Blue
+                        '#F44336'  // Cancelled - Red
+                    ],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#fff', font: { size: 11 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.raw / total) * 100).toFixed(1);
+                                return `${context.label}: ${context.raw} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+@endpush
 @endsection

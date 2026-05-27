@@ -70,6 +70,12 @@ class DashboardController extends Controller
         $recentOrders = $this->orderService->getRecentOrders();
         $pendingPayments = $this->orderService->getPendingPayments();
         
+        // ========== TAMBAHKAN ORDER STATUS COUNTS ==========
+        $pendingOrders = Order::where('status', 'pending')->count();
+        $paidOrders = Order::where('status', 'paid')->count();
+        $freeOrders = Order::where('status', 'free')->count();
+        $cancelledOrders = Order::where('status', 'cancelled')->count();
+        
         // Charts
         $participantChart = $this->chartService->getParticipantChartData();
         $revenueChart = $this->chartService->getRevenueChartData();
@@ -83,7 +89,11 @@ class DashboardController extends Controller
             'revenueChart',
             'topEvents',
             'recentOrders',
-            'pendingPayments'
+            'pendingPayments',
+            'pendingOrders',      // Tambahkan
+            'paidOrders',         // Tambahkan
+            'freeOrders',         // Tambahkan
+            'cancelledOrders'     // Tambahkan
         )));
     }
     
@@ -113,6 +123,12 @@ class DashboardController extends Controller
         $ordersQuery = Order::with(['participant', 'event'])->whereIn('event_id', $eventIds);
         $recentOrders = $this->orderService->getRecentOrders($ordersQuery);
         
+        // ========== TAMBAHKAN ORDER STATUS COUNTS UNTUK ORGANIZER ==========
+        $pendingOrders = Order::whereIn('event_id', $eventIds)->where('status', 'pending')->count();
+        $paidOrders = Order::whereIn('event_id', $eventIds)->where('status', 'paid')->count();
+        $freeOrders = Order::whereIn('event_id', $eventIds)->where('status', 'free')->count();
+        $cancelledOrders = Order::whereIn('event_id', $eventIds)->where('status', 'cancelled')->count();
+        
         // Charts
         $eventChart = $this->chartService->getEventRegistrationChart($eventIds);
         
@@ -123,7 +139,11 @@ class DashboardController extends Controller
             'recentParticipants',
             'eventChart',
             'topEvents',
-            'recentOrders'
+            'recentOrders',
+            'pendingOrders',      // Tambahkan untuk organizer
+            'paidOrders',         // Tambahkan untuk organizer
+            'freeOrders',         // Tambahkan untuk organizer
+            'cancelledOrders'     // Tambahkan untuk organizer
         )));
     }
 }

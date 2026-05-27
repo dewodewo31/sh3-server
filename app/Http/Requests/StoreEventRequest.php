@@ -28,6 +28,11 @@ class StoreEventRequest extends FormRequest
             'category_id' => 'required|exists:categories,id',
             'price' => 'nullable|numeric|min:0',
             'quota' => 'required|integer|min:1',
+            'merchandise_items' => 'nullable|array',
+            'merchandise_items.*.merchandise_id' => 'required|exists:merchandise,id',
+            'merchandise_items.*.discount_price' => 'nullable|numeric|min:0',
+            'merchandise_items.*.event_stock' => 'nullable|integer|min:0',
+            'merchandise_items.*.is_available' => 'boolean',
         ];
     }
 

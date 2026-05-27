@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Order;
+use App\Observers\AttendanceObserver;
 use App\Services\EventServices\EventService;
 use App\Services\EventServices\EventServiceInterface;
 use App\Services\OrderService\OrderService;
@@ -30,6 +32,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Order::observe(AttendanceObserver::class);
     }
 }

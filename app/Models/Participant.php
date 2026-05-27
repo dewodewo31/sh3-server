@@ -13,18 +13,19 @@ class Participant extends Authenticatable
     protected $table = 'participants';
     
     protected $fillable = [
-                'hash_id',
+        'hash_id',
+        'participant_type',  // member / non_member
         'name',
         'email',
         'phone',
         'gender',
         'birthdate',
-        'blood_type',           // ← Tambahan
-        'emergency_contact',    // ← Tambahan
-        'emergency_phone',      // ← Tambahan
-        'allergy_history',      // ← Tambahan
-        'identity_number',      // ← Tambahan
-        'identity_photo',       // ← Tambahan
+        'blood_type',
+        'emergency_contact',
+        'emergency_phone',
+        'allergy_history',
+        'identity_number',
+        'identity_photo',
         'photo',
         'status',
         'last_login_at',
@@ -41,25 +42,35 @@ class Participant extends Authenticatable
         'id'
     ];
 
+    protected $attributes = [
+        'participant_type' => 'non_member' // Default: non_member
+    ];
+
     protected static function booted()
     {
         static::creating(function ($participant) {
-            if (!$participant->hash_id) {
-                $participant->hash_id = static::generateHashId();
+            if (empty($participant->hash_id)) {
+                if ($participant->participant_type === 'member') {
+                    $participant->hash_id = static::generateMemberHashId();
+                } else {
+                    $participant->hash_id = static::generateNonMemberHashId();
+                }
             }
         });
     }
 
     /**
-     * Generate unique hash ID
-     * Format: 4 digit number (example: 0001, 0002, 0010, 0100, 1000, 9999)
+     * Generate unique hash ID for member (4 digits numeric)
+     * Example: 0001, 0002, 0003...
      */
-    public static function generateHashId(): string
+    public static function generateMemberHashId(): string
     {
-        $lastParticipant = static::orderBy('id', 'desc')->first();
+        $lastMember = static::where('participant_type', 'member')
+            ->orderBy('id', 'desc')
+            ->first();
         
-        if ($lastParticipant && $lastParticipant->hash_id) {
-            $lastId = (int) $lastParticipant->hash_id;
+        if ($lastMember && $lastMember->hash_id && is_numeric($lastMember->hash_id)) {
+            $lastId = (int) $lastMember->hash_id;
             $newId = str_pad($lastId + 1, 4, '0', STR_PAD_LEFT);
         } else {
             $newId = '0001';
@@ -69,25 +80,65 @@ class Participant extends Authenticatable
     }
 
     /**
-     * Generate random hash ID (alternatif)
+     * Generate hash ID for non-member
+     * Example: NM01, NM02, NM03...
      */
-    public static function generateRandomHashId(): string
+    public static function generateNonMemberHashId(): string
     {
-        do {
-            $random = str_pad(random_int(1, 9999), 4, '0', STR_PAD_LEFT);
-        } while (self::where('hash_id', $random)->exists());
+        $prefix = 'NM';
+        $lastNonMember = static::where('participant_type', 'non_member')
+            ->orderBy('id', 'desc')
+            ->first();
         
-        return $random;
+        if ($lastNonMember && $lastNonMember->hash_id) {
+            // Extract number from NM01 -> 1
+            $lastNumber = (int) substr($lastNonMember->hash_id, 2);
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+        
+        return $prefix . str_pad($newNumber, 2, '0', STR_PAD_LEFT);
     }
 
     /**
-     * Find participant by hash ID
+     * Alias for generateMemberHashId (backward compatibility)
      */
-    public static function findByHashId($hashId)
+    public static function generateHashId(): string
     {
-        // Ensure hash_id is 4 digits (pad with zeros if needed)
-        $hashId = str_pad($hashId, 4, '0', STR_PAD_LEFT);
-        return static::where('hash_id', $hashId)->first();
+        return static::generateMemberHashId();
+    }
+
+    /**
+     * Get identity photo URL
+     */
+    public function getIdentityPhotoUrlAttribute()
+    {
+        return $this->identity_photo ? asset('storage/' . $this->identity_photo) : null;
+    }
+
+    /**
+     * Get photo URL
+     */
+    public function getPhotoUrlAttribute()
+    {
+        return $this->photo ? asset('storage/' . $this->photo) : null;
+    }
+
+    /**
+     * Check if participant is member
+     */
+    public function isMember()
+    {
+        return $this->participant_type === 'member';
+    }
+
+    /**
+     * Check if participant is non-member
+     */
+    public function isNonMember()
+    {
+        return $this->participant_type === 'non_member';
     }
 
     /**
@@ -115,73 +166,53 @@ class Participant extends Authenticatable
     }
     
     /**
+     * Activate participant account
+     */
+    public function activate()
+    {
+        $this->status = 'active';
+        return $this->save();
+    }
+
+    /**
+     * Deactivate participant account
+     */
+    public function deactivate()
+    {
+        $this->status = 'inactive';
+        return $this->save();
+    }
+
+    /**
+     * Upgrade non-member to member
+     */
+    public function upgradeToMember()
+    {
+        if ($this->participant_type === 'member') {
+            return false;
+        }
+        
+        $this->participant_type = 'member';
+        $this->hash_id = static::generateMemberHashId();
+        
+        return $this->save();
+    }
+
+    /**
      * Get the name of the unique identifier for the user.
-     * Required by Authenticatable
      */
     public function getAuthIdentifierName()
     {
         return 'hash_id';
     }
 
-    /**
-     * Get the unique identifier for the user.
-     */
     public function getAuthIdentifier()
     {
         return $this->hash_id;
     }
 
-    /**
-     * Get the password for the user.
-     * Participants don't have password
-     */
     public function getAuthPassword()
     {
         return null;
-    }
-
-    /**
-     * Get the token value for the "remember me" session.
-     */
-    public function getRememberToken()
-    {
-        return null;
-    }
-
-    /**
-     * Set the token value for the "remember me" session.
-     */
-    public function setRememberToken($value)
-    {
-        // Not implemented
-    }
-
-    /**
-     * Get the column name for the "remember me" token.
-     */
-    public function getRememberTokenName()
-    {
-        return '';
-    }
-    /**
-     * Get identity photo URL
-     */
-    public function getIdentityPhotoUrlAttribute()
-    {
-        return $this->identity_photo ? asset('storage/' . $this->identity_photo) : null;
-    }
-
-    /**
-     * Get blood type label
-     */
-    public function getBloodTypeLabelAttribute()
-    {
-        $labels = [
-            'A' => 'A',
-            'B' => 'B',
-            'AB' => 'AB',
-            'O' => 'O'
-        ];
-        return $labels[$this->blood_type] ?? '-';
     }
 }
