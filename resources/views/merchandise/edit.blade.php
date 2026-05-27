@@ -141,8 +141,12 @@
                         </div>
                     </div>
 
-                    <!-- Event Selection (Opsional) -->
-                    <div x-data="{ selectedEvent: '{{ $merchandise->events->first()->id ?? '' }}' }">
+                    <!-- Event Selection with Special Price and Stock -->
+                    <div x-data="{ 
+                        selectedEvent: '{{ $merchandise->events->first()->id ?? '' }}',
+                        discountPrice: '{{ $merchandise->events->first()->pivot->discount_price ?? '' }}',
+                        eventStock: '{{ $merchandise->events->first()->pivot->event_stock ?? '' }}'
+                    }">
                         <label class="block text-gray-300 mb-2 font-semibold">Event (Opsional)</label>
                         <select name="event_id" x-model="selectedEvent" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500">
                             <option value="">-- Tanpa Event (Produk Umum) --</option>
@@ -158,24 +162,45 @@
                             Kosongkan jika produk dijual secara umum.
                         </p>
                         
-                        <!-- Info untuk event stock -->
-                        <div x-show="selectedEvent" class="mt-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/30">
-                            <div class="flex items-center gap-2 text-blue-300 text-sm">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <span>Produk ini terhubung dengan event yang dipilih</span>
+                        <!-- Form untuk Harga Khusus Event -->
+                        <div x-show="selectedEvent" class="mt-4 space-y-3">
+                            <div class="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                                <h4 class="text-sm font-semibold text-blue-300 mb-3 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Pengaturan Khusus Event
+                                </h4>
+                                
+                                <!-- Harga Khusus -->
+                                <div class="mb-3">
+                                    <label class="block text-gray-300 text-sm mb-1">Harga Khusus Event (Opsional)</label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">Rp</span>
+                                        <input type="number" 
+                                               name="event_discount_price"
+                                               x-model="discountPrice"
+                                               class="w-full bg-black/30 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-green-500"
+                                               placeholder="Kosongkan untuk harga normal ({{ number_format($merchandise->price, 0, ',', '.') }})">
+                                    </div>
+                                    <p class="text-xs text-gray-400 mt-1">
+                                        Harga normal: Rp {{ number_format($merchandise->price, 0, ',', '.') }}
+                                    </p>
+                                </div>
+                                
+                                <!-- Stok Khusus Event -->
+                                <div>
+                                    <label class="block text-gray-300 text-sm mb-1">Stok Khusus Event (Opsional)</label>
+                                    <input type="number" 
+                                           name="event_stock"
+                                           x-model="eventStock"
+                                           class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500"
+                                           placeholder="Kosongkan untuk stok normal ({{ $merchandise->stock }})">
+                                    <p class="text-xs text-gray-400 mt-1">
+                                        Stok normal: {{ $merchandise->stock }} pcs
+                                    </p>
+                                </div>
                             </div>
-                            
-                            @php
-                                $eventPivot = $merchandise->events->first()?->pivot;
-                            @endphp
-                            @if($eventPivot)
-                            <div class="mt-2 text-xs text-gray-400">
-                                <p>Harga khusus event: {{ $eventPivot->discount_price ? 'Rp ' . number_format($eventPivot->discount_price, 0, ',', '.') : 'Mengikuti harga normal' }}</p>
-                                <p>Stok khusus event: {{ $eventPivot->event_stock ?? 'Mengikuti stok normal' }}</p>
-                            </div>
-                            @endif
                         </div>
                     </div>
 
@@ -206,14 +231,29 @@
                 <h4 class="text-sm font-semibold text-gray-300 mb-3">Terhubung dengan Event:</h4>
                 <div class="space-y-2">
                     @foreach($merchandise->events as $event)
-                    <div class="flex justify-between items-center p-2 bg-white/5 rounded">
+                    <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
                         <div>
-                            <p class="text-white text-sm">{{ $event->title }}</p>
+                            <p class="text-white text-sm font-semibold">{{ $event->title }}</p>
                             <p class="text-xs text-gray-400">{{ $event->start_date->format('d M Y') }} - {{ $event->end_date->format('d M Y') }}</p>
+                            @if($event->pivot->discount_price)
+                                <p class="text-xs text-green-400 mt-1">
+                                    Harga Event: Rp {{ number_format($event->pivot->discount_price, 0, ',', '.') }}
+                                    <span class="text-gray-500 line-through ml-2">Rp {{ number_format($merchandise->price, 0, ',', '.') }}</span>
+                                </p>
+                            @else
+                                <p class="text-xs text-gray-400 mt-1">Harga: Mengikuti harga normal</p>
+                            @endif
+                            @if($event->pivot->event_stock)
+                                <p class="text-xs text-blue-400">Stok Event: {{ $event->pivot->event_stock }} pcs</p>
+                            @else
+                                <p class="text-xs text-gray-400">Stok: Mengikuti stok normal</p>
+                            @endif
                         </div>
-                        <a href="{{ route('events.show', $event) }}" class="text-green-400 hover:text-green-300 text-sm">
-                            Lihat Event →
-                        </a>
+                        <div class="flex gap-2">
+                            <a href="{{ route('events.show', $event) }}" class="text-green-400 hover:text-green-300 text-sm">
+                                Lihat Event →
+                            </a>
+                        </div>
                     </div>
                     @endforeach
                 </div>

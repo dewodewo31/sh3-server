@@ -130,8 +130,12 @@
                         <p class="text-xs text-gray-400 mt-1">Pilih warna yang tersedia</p>
                     </div>
 
-                    <!-- Event Selection (Opsional) -->
-                    <div x-data="{ selectedEvent: '' }">
+                    <!-- Event Selection with Special Price and Stock -->
+                    <div x-data="{ 
+                        selectedEvent: '{{ old('event_id') }}',
+                        discountPrice: '{{ old('event_discount_price') }}',
+                        eventStock: '{{ old('event_stock') }}'
+                    }">
                         <label class="block text-gray-300 mb-2 font-semibold">Event (Opsional)</label>
                         <select name="event_id" x-model="selectedEvent" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500">
                             <option class="text-black" value="">-- Tanpa Event (Produk Umum) --</option>
@@ -147,17 +151,57 @@
                             Kosongkan jika produk dijual secara umum.
                         </p>
                         
-                        <!-- Info untuk event stock -->
-                        <div x-show="selectedEvent" class="mt-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/30">
-                            <div class="flex items-center gap-2 text-blue-300 text-sm">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <span>Produk ini akan terhubung dengan event yang dipilih</span>
+                        <!-- Form untuk Harga Khusus Event -->
+                        <div x-show="selectedEvent" class="mt-4 space-y-3" x-transition>
+                            <div class="p-4 bg-blue-500/10 rounded-lg border border-blue-500/30">
+                                <h4 class="text-sm font-semibold text-blue-300 mb-3 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    Pengaturan Khusus Event
+                                </h4>
+                                
+                                <!-- Informasi Harga Normal -->
+                                <div class="mb-3 p-2 bg-white/5 rounded text-sm">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-400">Harga Normal:</span>
+                                        <span class="text-white font-semibold" id="normalPriceDisplay">Rp 0</span>
+                                    </div>
+                                    <div class="flex justify-between items-center mt-1">
+                                        <span class="text-gray-400">Stok Normal:</span>
+                                        <span class="text-white font-semibold" id="normalStockDisplay">0 pcs</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Harga Khusus -->
+                                <div class="mb-3">
+                                    <label class="block text-gray-300 text-sm mb-1">Harga Khusus Event (Opsional)</label>
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">Rp</span>
+                                        <input type="number" 
+                                               name="event_discount_price"
+                                               x-model="discountPrice"
+                                               class="w-full bg-black/30 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white focus:outline-none focus:border-green-500"
+                                               placeholder="Kosongkan untuk harga normal">
+                                    </div>
+                                    <p class="text-xs text-gray-400 mt-1">
+                                        Isi jika ingin harga khusus untuk event ini
+                                    </p>
+                                </div>
+                                
+                                <!-- Stok Khusus Event -->
+                                <div>
+                                    <label class="block text-gray-300 text-sm mb-1">Stok Khusus Event (Opsional)</label>
+                                    <input type="number" 
+                                           name="event_stock"
+                                           x-model="eventStock"
+                                           class="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-green-500"
+                                           placeholder="Kosongkan untuk stok normal">
+                                    <p class="text-xs text-gray-400 mt-1">
+                                        Isi jika ingin stok terbatas untuk event ini
+                                    </p>
+                                </div>
                             </div>
-                            <p class="text-xs text-gray-400 mt-1">
-                                Anda nanti bisa mengatur harga khusus dan stok khusus untuk event ini di halaman edit event.
-                            </p>
                         </div>
                     </div>
 
@@ -193,6 +237,7 @@
 </div>
 
 <script>
+    // Image preview
     document.querySelector('input[name="image"]').addEventListener('change', function(e) {
         const preview = document.getElementById('imagePreview');
         const img = document.getElementById('preview');
@@ -207,6 +252,25 @@
         } else {
             preview.classList.add('hidden');
         }
+    });
+    
+    // Update normal price and stock display when price/stock changes
+    document.querySelector('input[name="price"]').addEventListener('change', function(e) {
+        const price = parseInt(e.target.value) || 0;
+        document.getElementById('normalPriceDisplay').innerText = 'Rp ' + price.toLocaleString('id-ID');
+    });
+    
+    document.querySelector('input[name="stock"]').addEventListener('change', function(e) {
+        const stock = parseInt(e.target.value) || 0;
+        document.getElementById('normalStockDisplay').innerText = stock + ' pcs';
+    });
+    
+    // Trigger on load
+    document.addEventListener('DOMContentLoaded', function() {
+        const price = parseInt(document.querySelector('input[name="price"]').value) || 0;
+        const stock = parseInt(document.querySelector('input[name="stock"]').value) || 0;
+        document.getElementById('normalPriceDisplay').innerText = 'Rp ' + price.toLocaleString('id-ID');
+        document.getElementById('normalStockDisplay').innerText = stock + ' pcs';
     });
 </script>
 @endsection
