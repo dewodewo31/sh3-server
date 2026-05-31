@@ -8,6 +8,9 @@ use App\Models\Order;
 use App\Models\Sponsor;
 use Illuminate\Http\Request;
 use App\Http\Resources\EventResource; // Tambahkan ini jika menggunakan Resource
+use App\Models\Attendance;
+use Illuminate\Support\Str;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class EventApiController extends Controller
 {
@@ -194,6 +197,9 @@ class EventApiController extends Controller
     /**
      * Book an event (create order)
      */
+/**
+     * Book an event (create order)
+     */
     public function book(Request $request, $id)
     {
         $participant = $request->user();
@@ -202,9 +208,39 @@ class EventApiController extends Controller
         // Check if already booked
         $existingOrder = Order::where('participant_id', $participant->id)
             ->where('event_id', $event->id)
-            ->exists();
+            ->first();
 
         if ($existingOrder) {
+            // Jika sudah ada order, cek attendance
+            $attendance = Attendance::where('order_id', $existingOrder->id)->first();
+            
+            if ($attendance) {
+                // Generate ulang QR code jika perlu
+                $qrCodeUrl = route('attendance.scan', $attendance->qr_code);
+                $qrCodeSvg = base64_encode(
+                    QrCode::format('svg')
+                        ->size(300)
+                        ->generate($qrCodeUrl)
+                );
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You have already booked this event',
+                    'data' => [
+                        'order_id' => $existingOrder->id,
+                        'invoice_number' => $existingOrder->invoice_number,
+                        'ticket_code' => $existingOrder->ticket_code,
+                        'status' => $existingOrder->status,
+                        'attendance' => [
+                            'id' => $attendance->id,
+                            'qr_code' => $attendance->qr_code,
+                            'qr_code_image' => $qrCodeSvg,
+                            'attendance_status' => $attendance->status,
+                        ]
+                    ]
+                ], 400);
+            }
+            
             return response()->json([
                 'success' => false,
                 'message' => 'You have already booked this event'
@@ -213,6 +249,7 @@ class EventApiController extends Controller
 
         // Check quota
         $registeredCount = $event->orders()->count();
+
         if ($registeredCount >= $event->quota) {
             return response()->json([
                 'success' => false,
@@ -220,12 +257,35 @@ class EventApiController extends Controller
             ], 400);
         }
 
+        // Create order
         $order = Order::create([
             'participant_id' => $participant->id,
             'event_id' => $event->id,
             'total_price' => $event->price,
             'status' => $event->price > 0 ? 'pending' : 'free'
         ]);
+
+        // Create attendance - PERBAIKAN: Gunakan firstOrCreate
+        $attendance = Attendance::firstOrCreate(
+            [
+                'order_id' => $order->id,
+                'event_id' => $event->id,
+            ],
+            [
+                'participant_id' => $participant->id,
+                'qr_code' => strtoupper(Str::random(12)),
+                'status' => 'pending'
+            ]
+        );
+
+        // Generate QR SVG
+        $qrCodeUrl = route('attendance.scan', $attendance->qr_code);
+
+        $qrCodeSvg = base64_encode(
+            QrCode::format('svg')
+                ->size(300)
+                ->generate($qrCodeUrl)
+        );
 
         return response()->json([
             'success' => true,
@@ -234,10 +294,17 @@ class EventApiController extends Controller
                 'order_id' => $order->id,
                 'invoice_number' => $order->invoice_number,
                 'ticket_code' => $order->ticket_code,
-                'status' => $order->status
+                'status' => $order->status,
+                'attendance' => [
+                    'id' => $attendance->id,
+                    'qr_code' => $attendance->qr_code,
+                    'qr_code_svg' => $qrCodeSvg,
+                    'attendance_status' => $attendance->status,
+                ]
             ]
         ], 201);
     }
+    
 
     /**
      * Get my booked events

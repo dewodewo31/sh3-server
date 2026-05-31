@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
+use App\Models\Attendance;
 use App\Models\Event;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Participant;
+use BaconQrCode\Encoder\QrCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -20,7 +22,7 @@ class OrderApiController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'event_id' => 'required|exists:events,id',
-            'participant_id' => 'required|exists:participants,hash_id', // dari id jadi hash_id
+            'participant_id' => 'required|exists:participants,hash_id',
         ]);
 
         if ($validator->fails()) {
@@ -32,18 +34,49 @@ class OrderApiController extends Controller
         }
 
         $event = Event::find($request->event_id);
-        // $participant = Participant::find($request->participant_id); // lama
-        $participant = Participant::where('hash_id', $request->participant_id)->first(); // baru
+        $participant = Participant::where('hash_id', $request->participant_id)->first();
+
+        if (!$participant) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Participant not found'
+            ], 404);
+        }
 
         // Check if already ordered
         $existingOrder = Order::where('participant_id', $participant->id)
             ->where('event_id', $event->id)
-            ->exists();
+            ->first();
 
         if ($existingOrder) {
+            // Cek apakah sudah ada attendance
+            $attendance = Attendance::where('order_id', $existingOrder->id)->first();
+            
+            $responseData = [
+                'order_id' => $existingOrder->id,
+                'invoice_number' => $existingOrder->invoice_number,
+                'ticket_code' => $existingOrder->ticket_code,
+                'status' => $existingOrder->status,
+            ];
+            
+            if ($attendance) {
+                $qrCodeUrl = route('attendance.scan', $attendance->qr_code);
+                $qrCodeBase64 = 'data:image/png;base64,' . base64_encode(
+                    QrCode::format('png')->size(300)->generate($qrCodeUrl)
+                );
+                
+                $responseData['attendance'] = [
+                    'id' => $attendance->id,
+                    'qr_code' => $attendance->qr_code,
+                    'qr_code_image' => $qrCodeBase64,
+                    'attendance_status' => $attendance->status,
+                ];
+            }
+            
             return response()->json([
                 'success' => false,
-                'message' => 'You have already registered for this event'
+                'message' => 'You have already registered for this event',
+                'data' => $responseData
             ], 400);
         }
 
@@ -56,6 +89,7 @@ class OrderApiController extends Controller
             ], 400);
         }
 
+        // Create order
         $order = Order::create([
             'participant_id' => $participant->id,
             'event_id' => $event->id,
@@ -63,10 +97,37 @@ class OrderApiController extends Controller
             'status' => $event->price > 0 ? 'pending' : 'free'
         ]);
 
+        // Create attendance - PERBAIKAN: Gunakan firstOrCreate
+        $attendance = Attendance::firstOrCreate(
+            [
+                'order_id' => $order->id,
+                'event_id' => $event->id,
+            ],
+            [
+                'participant_id' => $participant->id,
+                'qr_code' => strtoupper(Str::random(12)),
+                'status' => 'pending'
+            ]
+        );
+
+        // Generate QR code image
+        $qrCodeUrl = route('attendance.scan', $attendance->qr_code);
+        $qrCodeBase64 = 'data:image/png;base64,' . base64_encode(
+            QrCode::format('png')->size(300)->generate($qrCodeUrl)
+        );
+
         return response()->json([
             'success' => true,
             'message' => 'Order created successfully',
-            'data' => new OrderResource($order->load(['participant', 'event']))
+            'data' => [
+                'order' => new OrderResource($order->load(['participant', 'event'])),
+                'attendance' => [
+                    'id' => $attendance->id,
+                    'qr_code' => $attendance->qr_code,
+                    'qr_code_image' => $qrCodeBase64,
+                    'attendance_status' => $attendance->status,
+                ]
+            ]
         ], 201);
     }
 
