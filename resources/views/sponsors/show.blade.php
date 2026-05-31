@@ -62,7 +62,7 @@
                 <h2 class="text-2xl font-bold text-white mt-4 mb-2">{{ $sponsor->name }}</h2>
                 
                 <div class="inline-flex px-3 py-1 rounded-full text-sm font-semibold mb-3 {{ $sponsor->tier_badge }}">
-                    {{ ucfirst($sponsor->tier) }}
+                    Default: {{ ucfirst($sponsor->tier) }}
                 </div>
                 
                 <div class="inline-flex px-3 py-1 rounded-full text-sm ml-2
@@ -145,7 +145,7 @@
         </div>
         @endif
 
-        <!-- Associated Events -->
+        <!-- Associated Events with Event-Specific Tiers -->
         <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -160,6 +160,10 @@
             @if($sponsor->events->count() > 0)
                 <div class="space-y-3">
                     @foreach($sponsor->events as $event)
+                        @php
+                            $eventTier = $event->pivot->tier ?? $sponsor->tier;
+                            $tierBadge = $sponsor->getTierBadgeForTier($eventTier);
+                        @endphp
                         <div class="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition group">
                             <div class="flex justify-between items-start">
                                 <div class="flex-1">
@@ -181,6 +185,33 @@
                                                 {{ $event->start_date->format('d M Y') }} - {{ $event->end_date->format('d M Y') }}
                                             </p>
                                         </div>
+                                    </div>
+                                    
+                                    <!-- Event-specific sponsor details -->
+                                    <div class="ml-15 mt-2 space-y-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-xs text-gray-400">Tier untuk event ini:</span>
+                                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold {{ $tierBadge }}">
+                                                {{ ucfirst($eventTier) }}
+                                            </span>
+                                            @if($event->pivot->tier && $event->pivot->tier != $sponsor->tier)
+                                                <span class="text-xs text-gray-500">(berbeda dari default: {{ ucfirst($sponsor->tier) }})</span>
+                                            @endif
+                                        </div>
+                                        
+                                        @if($event->pivot->contribution_amount)
+                                        <div class="flex items-center gap-2 text-xs">
+                                            <span class="text-gray-400">Kontribusi:</span>
+                                            <span class="text-green-400">Rp {{ number_format($event->pivot->contribution_amount, 0, ',', '.') }}</span>
+                                        </div>
+                                        @endif
+                                        
+                                        @if($event->pivot->benefits)
+                                        <div class="text-xs">
+                                            <span class="text-gray-400">Benefits:</span>
+                                            <p class="text-gray-300 mt-1">{{ $event->pivot->benefits }}</p>
+                                        </div>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition">

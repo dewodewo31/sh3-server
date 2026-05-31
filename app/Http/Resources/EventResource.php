@@ -37,6 +37,35 @@ class EventResource extends JsonResource
                 'name' => $this->creator->name,
                 'email' => $this->creator->email,
             ],
+            'sponsors' => $this->whenLoaded('sponsors', function() {
+                return [
+                    'platinum' => $this->sponsors->where('tier', 'platinum')->values(),
+                    'gold' => $this->sponsors->where('tier', 'gold')->values(),
+                    'silver' => $this->sponsors->where('tier', 'silver')->values(),
+                    'bronze' => $this->sponsors->where('tier', 'bronze')->values(),
+                    'partner' => $this->sponsors->where('tier', 'partner')->values(),
+                ];
+            }),
+            'merchandise' => $this->whenLoaded('merchandise', function() {
+                return $this->merchandise->map(function($item) {
+                    return [
+                        'id' => $item->id,
+                        'name' => $item->name,
+                        'slug' => $item->slug,
+                        'description' => $item->description,
+                        'image_url' => $item->image ? asset('storage/' . $item->image) : null,
+                        'category' => $item->category,
+                        'sizes' => $item->sizes ?? [],
+                        'colors' => $item->colors ?? [],
+                        'price' => $item->price,
+                        'price_formatted' => 'Rp ' . number_format($item->price, 0, ',', '.'),
+                        'event_price' => $item->pivot->discount_price ?? $item->price,
+                        'has_discount' => $item->pivot->discount_price !== null && $item->pivot->discount_price < $item->price,
+                        'stock' => $item->pivot->event_stock ?? $item->stock,
+                        'is_in_stock' => ($item->pivot->event_stock ?? $item->stock) > 0,
+                    ];
+                });
+            }),
             'galleries' => GalleryResource::collection($this->whenLoaded('galleries')),
             'created_at' => $this->created_at->toISOString(),
             'updated_at' => $this->updated_at->toISOString(),

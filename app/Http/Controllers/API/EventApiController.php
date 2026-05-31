@@ -7,6 +7,7 @@ use App\Models\Event;
 use App\Models\Order;
 use App\Models\Sponsor;
 use Illuminate\Http\Request;
+use App\Http\Resources\EventResource; // Tambahkan ini jika menggunakan Resource
 
 class EventApiController extends Controller
 {
@@ -54,22 +55,39 @@ class EventApiController extends Controller
 
     /**
      * Get single event detail with sponsors and merchandise
-     * (HANYA SATU method show - hapus yang lain)
      */
     public function show($id)
     {
         $event = Event::with(['category', 'creator', 'galleries', 'sponsors', 'merchandise'])
             ->findOrFail($id);
         
-        // Format sponsors by tier
+        // Format sponsors by tier - PERBAIKAN: gunakan pivot.tier
         $sponsors = [
-            'platinum' => $event->sponsors->where('tier', 'platinum')->values(),
-            'gold' => $event->sponsors->where('tier', 'gold')->values(),
-            'silver' => $event->sponsors->where('tier', 'silver')->values(),
-            'bronze' => $event->sponsors->where('tier', 'bronze')->values(),
-            'partner' => $event->sponsors->where('tier', 'partner')->values(),
+            'platinum' => collect(),
+            'gold' => collect(),
+            'silver' => collect(),
+            'bronze' => collect(),
+            'partner' => collect(),
         ];
-
+        
+        foreach ($event->sponsors as $sponsor) {
+            // Ambil tier dari pivot (relasi many-to-many)
+            $tier = $sponsor->pivot->tier ?? $sponsor->tier;
+            
+            // Tambahkan ke array sesuai tier
+            if ($tier == 'platinum') {
+                $sponsors['platinum']->push($sponsor);
+            } elseif ($tier == 'gold') {
+                $sponsors['gold']->push($sponsor);
+            } elseif ($tier == 'silver') {
+                $sponsors['silver']->push($sponsor);
+            } elseif ($tier == 'bronze') {
+                $sponsors['bronze']->push($sponsor);
+            } else {
+                $sponsors['partner']->push($sponsor);
+            }
+        }
+        
         // Format merchandise for this event
         $merchandise = $this->formatEventMerchandise($event);
 
@@ -102,7 +120,13 @@ class EventApiController extends Controller
                 ],
                 'key_points' => $event->key_point,
                 'galleries' => $this->formatGalleries($event->galleries),
-                'sponsors' => $sponsors,
+                'sponsors' => [
+                    'platinum' => $sponsors['platinum']->values(),
+                    'gold' => $sponsors['gold']->values(),
+                    'silver' => $sponsors['silver']->values(),
+                    'bronze' => $sponsors['bronze']->values(),
+                    'partner' => $sponsors['partner']->values(),
+                ],
                 'merchandise' => $merchandise,
                 'created_at' => $event->created_at,
                 'updated_at' => $event->updated_at,

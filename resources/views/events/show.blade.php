@@ -194,7 +194,7 @@
                 </div>
             @endif
 
-            <!-- SPONSORS SECTION - TAMPILAN SPONSOR -->
+            <!-- SPONSORS SECTION - TAMPILAN SPONSOR (FIXED) -->
             @if ($event->sponsors && $event->sponsors->count() > 0)
                 <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
                     <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
@@ -205,19 +205,37 @@
                         Didukung Oleh
                     </h2>
 
+                    @php
+                        // Kelompokkan sponsor berdasarkan tier dari pivot table
+                        $sponsorsByTier = [
+                            'platinum' => [],
+                            'gold' => [],
+                            'silver' => [],
+                            'bronze' => [],
+                            'partner' => [],
+                        ];
+
+                        foreach ($event->sponsors as $sponsor) {
+                            // Ambil tier dari pivot, jika tidak ada gunakan default tier sponsor
+                            $tier = $sponsor->pivot->tier ?? $sponsor->tier;
+                            if (isset($sponsorsByTier[$tier])) {
+                                $sponsorsByTier[$tier][] = $sponsor;
+                            }
+                        }
+                    @endphp
+
                     <!-- Platinum Sponsors -->
-                    @php $platinumSponsors = $event->sponsors->where('tier', 'platinum'); @endphp
-                    @if ($platinumSponsors->count() > 0)
+                    @if (count($sponsorsByTier['platinum']) > 0)
                         <div class="mb-6">
                             <h3 class="text-md font-semibold text-purple-400 mb-3 flex items-center gap-2">
                                 <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
                                 Platinum Sponsor
                             </h3>
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                @foreach ($platinumSponsors as $sponsor)
+                                @foreach ($sponsorsByTier['platinum'] as $sponsor)
                                     <div class="bg-white/5 rounded-lg p-4 text-center hover:bg-white/10 transition group">
                                         @if ($sponsor->logo)
-                                            <img src="{{ Storage::url($sponsor->logo) }}"
+                                            <img src="{{ $sponsor->logo_url }}"
                                                 class="w-20 h-20 mx-auto object-contain mb-2">
                                         @else
                                             <div
@@ -230,10 +248,19 @@
                                             </div>
                                         @endif
                                         <p class="font-semibold text-white group-hover:text-purple-400 transition">
-                                            {{ $sponsor->name }}</p>
+                                            {{ $sponsor->name }}
+                                        </p>
+                                        @if ($sponsor->pivot->contribution_amount)
+                                            <p class="text-xs text-gray-400 mt-1">
+                                                Kontribusi: Rp
+                                                {{ number_format($sponsor->pivot->contribution_amount, 0, ',', '.') }}
+                                            </p>
+                                        @endif
                                         @if ($sponsor->website)
                                             <a href="{{ $sponsor->website }}" target="_blank"
-                                                class="text-xs text-gray-400 hover:text-green-400">Visit Website</a>
+                                                class="text-xs text-gray-400 hover:text-green-400 inline-block mt-1">
+                                                Visit Website
+                                            </a>
                                         @endif
                                     </div>
                                 @endforeach
@@ -242,18 +269,17 @@
                     @endif
 
                     <!-- Gold Sponsors -->
-                    @php $goldSponsors = $event->sponsors->where('tier', 'gold'); @endphp
-                    @if ($goldSponsors->count() > 0)
+                    @if (count($sponsorsByTier['gold']) > 0)
                         <div class="mb-6">
                             <h3 class="text-md font-semibold text-yellow-400 mb-3 flex items-center gap-2">
                                 <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
                                 Gold Sponsor
                             </h3>
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                @foreach ($goldSponsors as $sponsor)
+                                @foreach ($sponsorsByTier['gold'] as $sponsor)
                                     <div class="bg-white/5 rounded-lg p-4 text-center hover:bg-white/10 transition group">
                                         @if ($sponsor->logo)
-                                            <img src="{{ Storage::url($sponsor->logo) }}"
+                                            <img src="{{ $sponsor->logo_url }}"
                                                 class="w-16 h-16 mx-auto object-contain mb-2">
                                         @else
                                             <div
@@ -266,10 +292,19 @@
                                             </div>
                                         @endif
                                         <p class="font-semibold text-white group-hover:text-yellow-400 transition">
-                                            {{ $sponsor->name }}</p>
+                                            {{ $sponsor->name }}
+                                        </p>
+                                        @if ($sponsor->pivot->contribution_amount)
+                                            <p class="text-xs text-gray-400 mt-1">
+                                                Kontribusi: Rp
+                                                {{ number_format($sponsor->pivot->contribution_amount, 0, ',', '.') }}
+                                            </p>
+                                        @endif
                                         @if ($sponsor->website)
                                             <a href="{{ $sponsor->website }}" target="_blank"
-                                                class="text-xs text-gray-400 hover:text-green-400">Visit Website</a>
+                                                class="text-xs text-gray-400 hover:text-green-400 inline-block mt-1">
+                                                Visit Website
+                                            </a>
                                         @endif
                                     </div>
                                 @endforeach
@@ -278,18 +313,17 @@
                     @endif
 
                     <!-- Silver Sponsors -->
-                    @php $silverSponsors = $event->sponsors->where('tier', 'silver'); @endphp
-                    @if ($silverSponsors->count() > 0)
+                    @if (count($sponsorsByTier['silver']) > 0)
                         <div class="mb-6">
                             <h3 class="text-md font-semibold text-gray-400 mb-3 flex items-center gap-2">
                                 <span class="w-2 h-2 bg-gray-500 rounded-full"></span>
                                 Silver Sponsor
                             </h3>
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                @foreach ($silverSponsors as $sponsor)
+                                @foreach ($sponsorsByTier['silver'] as $sponsor)
                                     <div class="bg-white/5 rounded-lg p-4 text-center hover:bg-white/10 transition group">
                                         @if ($sponsor->logo)
-                                            <img src="{{ Storage::url($sponsor->logo) }}"
+                                            <img src="{{ $sponsor->logo_url }}"
                                                 class="w-14 h-14 mx-auto object-contain mb-2">
                                         @else
                                             <div
@@ -302,7 +336,14 @@
                                             </div>
                                         @endif
                                         <p class="font-semibold text-white group-hover:text-gray-300 transition">
-                                            {{ $sponsor->name }}</p>
+                                            {{ $sponsor->name }}
+                                        </p>
+                                        @if ($sponsor->website)
+                                            <a href="{{ $sponsor->website }}" target="_blank"
+                                                class="text-xs text-gray-400 hover:text-green-400 inline-block mt-1">
+                                                Visit Website
+                                            </a>
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>
@@ -310,18 +351,17 @@
                     @endif
 
                     <!-- Bronze Sponsors -->
-                    @php $bronzeSponsors = $event->sponsors->where('tier', 'bronze'); @endphp
-                    @if ($bronzeSponsors->count() > 0)
+                    @if (count($sponsorsByTier['bronze']) > 0)
                         <div class="mb-6">
                             <h3 class="text-md font-semibold text-orange-400 mb-3 flex items-center gap-2">
                                 <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
                                 Bronze Sponsor
                             </h3>
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                @foreach ($bronzeSponsors as $sponsor)
+                                @foreach ($sponsorsByTier['bronze'] as $sponsor)
                                     <div class="bg-white/5 rounded-lg p-4 text-center hover:bg-white/10 transition group">
                                         @if ($sponsor->logo)
-                                            <img src="{{ Storage::url($sponsor->logo) }}"
+                                            <img src="{{ $sponsor->logo_url }}"
                                                 class="w-12 h-12 mx-auto object-contain mb-2">
                                         @else
                                             <div
@@ -334,7 +374,14 @@
                                             </div>
                                         @endif
                                         <p class="font-semibold text-white group-hover:text-orange-400 transition">
-                                            {{ $sponsor->name }}</p>
+                                            {{ $sponsor->name }}
+                                        </p>
+                                        @if ($sponsor->website)
+                                            <a href="{{ $sponsor->website }}" target="_blank"
+                                                class="text-xs text-gray-400 hover:text-green-400 inline-block mt-1">
+                                                Visit Website
+                                            </a>
+                                        @endif
                                     </div>
                                 @endforeach
                             </div>
@@ -342,18 +389,17 @@
                     @endif
 
                     <!-- Partner Sponsors -->
-                    @php $partnerSponsors = $event->sponsors->where('tier', 'partner'); @endphp
-                    @if ($partnerSponsors->count() > 0)
+                    @if (count($sponsorsByTier['partner']) > 0)
                         <div class="mb-6">
                             <h3 class="text-md font-semibold text-blue-400 mb-3 flex items-center gap-2">
                                 <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
                                 Media Partner
                             </h3>
                             <div class="flex flex-wrap gap-4 justify-center">
-                                @foreach ($partnerSponsors as $sponsor)
+                                @foreach ($sponsorsByTier['partner'] as $sponsor)
                                     <div class="bg-white/5 rounded-lg px-4 py-2 text-center hover:bg-white/10 transition">
                                         @if ($sponsor->logo)
-                                            <img src="{{ Storage::url($sponsor->logo) }}"
+                                            <img src="{{ $sponsor->logo_url }}"
                                                 class="h-8 object-contain inline-block mr-2">
                                         @endif
                                         <span class="text-gray-300">{{ $sponsor->name }}</span>

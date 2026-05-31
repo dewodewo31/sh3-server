@@ -12,10 +12,9 @@ class ParticipantController extends Controller
     protected $participantService;
     protected $warningService; // Tambahkan property
 
-    public function __construct(
-        ParticipantServiceInterface $participantService,
-        WarningService $warningService // Tambahkan injection
-    ) {
+    public function __construct(ParticipantServiceInterface $participantService, WarningService $warningService)
+    {
+        // Tambahkan injection
         $this->participantService = $participantService;
         $this->warningService = $warningService; // Initialize
     }
@@ -25,33 +24,33 @@ class ParticipantController extends Controller
     public function index(Request $request)
     {
         $query = Participant::query();
-        
+
         // Search filter
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%")
-                ->orWhere('phone', 'like', "%{$search}%")
-                ->orWhere('hash_id', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('hash_id', 'like', "%{$search}%");
             });
         }
-        
+
         // Type filter (member/non_member)
         if ($request->has('type') && $request->type != '') {
             $query->where('participant_type', $request->type);
         }
-        
+
         // Status filter
         if ($request->has('status') && $request->status != '') {
             $query->where('status', $request->status);
         }
-        
+
         // Gender filter
         if ($request->has('gender') && $request->gender != '') {
             $query->where('gender', $request->gender);
         }
-        
+
         // Warning level filter
         if ($request->has('warning_level') && $request->warning_level != '') {
             if ($request->warning_level == '0') {
@@ -60,7 +59,7 @@ class ParticipantController extends Controller
                 $query->where('current_warning_level', $request->warning_level);
             }
         }
-        
+
         // Sort
         switch ($request->get('sort', 'latest')) {
             case 'oldest':
@@ -75,9 +74,9 @@ class ParticipantController extends Controller
             default:
                 $query->latest();
         }
-        
+
         $participants = $query->paginate(15);
-        
+
         // Stats for dashboard
         $totalParticipants = Participant::count();
         $activeParticipants = Participant::where('status', 'active')->count();
@@ -87,16 +86,7 @@ class ParticipantController extends Controller
         $memberCount = Participant::where('participant_type', 'member')->count();
         $nonMemberCount = Participant::where('participant_type', 'non_member')->count();
 
-        return view('participants.index', compact(
-            'participants', 
-            'totalParticipants', 
-            'activeParticipants', 
-            'inactiveParticipants',
-            'maleParticipants',
-            'femaleParticipants',
-            'memberCount',
-            'nonMemberCount'
-        ));
+        return view('participants.index', compact('participants', 'totalParticipants', 'activeParticipants', 'inactiveParticipants', 'maleParticipants', 'femaleParticipants', 'memberCount', 'nonMemberCount'));
     }
 
     /**
@@ -244,27 +234,27 @@ class ParticipantController extends Controller
         return $this->participantService->exportParticipantsToPdf($request);
     }
 
-     /**
+    /**
      * Upgrade non-member to member
      */
     public function upgradeToMember($id)
     {
-        $participant = Participant::findOrFail($id);  // ← Gunakan App\Models\Participant
-        
+        $participant = Participant::findOrFail($id); // ← Gunakan App\Models\Participant
+
         if ($participant->participant_type === 'member') {
-            return redirect()->route('participants.index')
-                ->with('error', 'Participant sudah menjadi member');
+            return redirect()->route('participants.index')->with('error', 'Participant sudah menjadi member');
         }
-        
+
         // Generate new hash ID for member using model method
-        $newHashId = Participant::generateMemberHashId();  // ← Panggil method dari model
-        
+        $newHashId = Participant::generateMemberHashId(); // ← Panggil method dari model
+
         $participant->update([
             'participant_type' => 'member',
-            'hash_id' => $newHashId
+            'hash_id' => $newHashId,
         ]);
-        
-        return redirect()->route('participants.index')
+
+        return redirect()
+            ->route('participants.index')
             ->with('success', "Participant berhasil di-upgrade menjadi member dengan Hash ID: {$newHashId}");
     }
     /**
@@ -274,19 +264,15 @@ class ParticipantController extends Controller
     {
         $request->validate([
             'reason' => 'required|string|max:255',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
         ]);
 
         try {
-            $result = $this->warningService->issueWarning(
-                $id,
-                $request->reason,
-                $request->description
-            );
+            $result = $this->warningService->issueWarning($id, $request->reason, $request->description);
 
             return redirect()
                 ->route('participants.show', $id)
-                ->with('success', "Warning berhasil diberikan: " . $result['sanction']['message']);
+                ->with('success', 'Warning berhasil diberikan: ' . $result['sanction']['message']);
         } catch (\Exception $e) {
             return redirect()
                 ->back()
@@ -299,13 +285,17 @@ class ParticipantController extends Controller
      */
     public function getWarnings($id)
     {
+        $participant = $this->participantService->getParticipantById($id);
         $warnings = $this->warningService->getActiveWarnings($id);
-        
+
         if (request()->ajax()) {
-            return response()->json($warnings);
+            return response()->json([
+                'success' => true,
+                'data' => $warnings,
+            ]);
         }
-        
-        return view('participants.warnings', compact('warnings'));
+
+        return view('participants.warnings', compact('participant', 'warnings'));
     }
 
     /**
@@ -315,10 +305,8 @@ class ParticipantController extends Controller
     {
         try {
             $result = $this->warningService->removeWarning($warningId);
-            
-            return redirect()
-                ->route('participants.show', $participantId)
-                ->with('success', 'Warning berhasil dihapus');
+
+            return redirect()->route('participants.show', $participantId)->with('success', 'Warning berhasil dihapus');
         } catch (\Exception $e) {
             return redirect()
                 ->back()
@@ -332,8 +320,7 @@ class ParticipantController extends Controller
     public function checkCanJoinEvent(Request $request, $id)
     {
         $result = $this->warningService->canJoinEvent($id, $request->event_id);
-        
+
         return response()->json($result);
     }
-
 }

@@ -61,6 +61,66 @@ class Event extends Model
             ->withTimestamps();
     }
 
+    // RELATION WITH SPONSORS (Many-to-Many with event-specific data)
+    public function sponsors()
+    {
+        return $this->belongsToMany(Sponsor::class, 'event_sponsor')
+            ->withPivot('tier', 'sponsorship_level', 'contribution_amount', 'benefits', 'sort_order')
+            ->withTimestamps();
+    }
+
+    // Get sponsors grouped by their tier for this event
+    public function getSponsorsGroupedByTierAttribute()
+    {
+        $sponsors = $this->sponsors()
+            ->where('is_active', true)
+            ->orderBy('pivot_sort_order')
+            ->get();
+        
+        return $sponsors->groupBy(function($sponsor) {
+            return $sponsor->pivot->tier ?? $sponsor->tier;
+        });
+    }
+
+    // Get sponsors by specific tier for this event
+    public function getSponsorsByTier($tier)
+    {
+        return $this->sponsors()
+            ->where('is_active', true)
+            ->where(function($query) use ($tier) {
+                $query->where('event_sponsor.tier', $tier)
+                      ->orWhere(function($q) use ($tier) {
+                          $q->whereNull('event_sponsor.tier')
+                            ->where('sponsors.tier', $tier);
+                      });
+            })
+            ->orderBy('event_sponsor.sort_order')
+            ->get();
+    }
+
+    // Get all active sponsors with their event-specific data
+    public function getActiveSponsorsWithPivotAttribute()
+    {
+        return $this->sponsors()
+            ->where('is_active', true)
+            ->orderBy('event_sponsor.sort_order')
+            ->get()
+            ->map(function($sponsor) {
+                return (object) [
+                    'id' => $sponsor->id,
+                    'name' => $sponsor->name,
+                    'logo' => $sponsor->logo,
+                    'logo_url' => $sponsor->logo_url,
+                    'website' => $sponsor->website,
+                    'description' => $sponsor->description,
+                    'tier' => $sponsor->pivot->tier ?? $sponsor->tier,
+                    'contribution_amount' => $sponsor->pivot->contribution_amount,
+                    'benefits' => $sponsor->pivot->benefits,
+                    'sort_order' => $sponsor->pivot->sort_order ?? $sponsor->sort_order,
+                ];
+            });
+    }
+
     // Get available merchandise for this event
     public function getAvailableMerchandise()
     {
@@ -117,19 +177,5 @@ class Event extends Model
             'finished' => '<span class="badge badge-secondary">Selesai</span>',
             default => '<span class="badge badge-dark">Unknown</span>',
         };
-    }
-
-    // Relation with sponsors
-    public function sponsors()
-    {
-        return $this->belongsToMany(Sponsor::class, 'event_sponsor')
-            ->withPivot('sponsorship_level', 'contribution_amount', 'benefits')
-            ->withTimestamps();
-    }
-
-    // Get sponsors by tier
-    public function getSponsorsByTier($tier)
-    {
-        return $this->sponsors()->where('tier', $tier)->get();
     }
 }

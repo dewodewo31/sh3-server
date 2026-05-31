@@ -30,7 +30,7 @@ class SponsorController extends Controller
         
         $totalSponsors = Sponsor::count();
         $activeSponsors = Sponsor::where('is_active', true)->count();
-        $tiers = ['platinum', 'gold', 'silver', 'bronze', 'partner'];
+        $tiers = Sponsor::getAvailableTiers();
         
         return view('sponsors.index', compact('sponsors', 'totalSponsors', 'activeSponsors', 'tiers'));
     }
@@ -41,7 +41,7 @@ class SponsorController extends Controller
     public function create()
     {
         $events = Event::all();
-        $tiers = ['platinum', 'gold', 'silver', 'bronze', 'partner'];
+        $tiers = Sponsor::getAvailableTiers();
         
         return view('sponsors.create', compact('events', 'tiers'));
     }
@@ -61,8 +61,11 @@ class SponsorController extends Controller
             'tier' => 'required|in:platinum,gold,silver,bronze,partner',
             'sort_order' => 'nullable|integer',
             'is_active' => 'boolean',
-            'event_ids' => 'nullable|array',
-            'event_ids.*' => 'exists:events,id'
+            'event_sponsors' => 'nullable|array',
+            'event_sponsors.*.event_id' => 'required|exists:events,id',
+            'event_sponsors.*.tier' => 'required|in:platinum,gold,silver,bronze,partner',
+            'event_sponsors.*.contribution_amount' => 'nullable|numeric',
+            'event_sponsors.*.benefits' => 'nullable|string'
         ]);
 
         if ($validator->fails()) {
@@ -84,9 +87,16 @@ class SponsorController extends Controller
         
         $sponsor = Sponsor::create($data);
         
-        // Attach to events
-        if ($request->has('event_ids')) {
-            $sponsor->events()->attach($request->event_ids);
+        // Attach to events with specific tier data
+        if ($request->has('event_sponsors')) {
+            foreach ($request->event_sponsors as $eventSponsor) {
+                $sponsor->events()->attach($eventSponsor['event_id'], [
+                    'tier' => $eventSponsor['tier'],
+                    'contribution_amount' => $eventSponsor['contribution_amount'] ?? null,
+                    'benefits' => $eventSponsor['benefits'] ?? null,
+                    'sort_order' => $eventSponsor['sort_order'] ?? 0
+                ]);
+            }
         }
         
         return redirect()->route('sponsors.index')
@@ -109,10 +119,21 @@ class SponsorController extends Controller
     public function edit(Sponsor $sponsor)
     {
         $events = Event::all();
-        $tiers = ['platinum', 'gold', 'silver', 'bronze', 'partner'];
-        $selectedEvents = $sponsor->events->pluck('id')->toArray();
+        $tiers = Sponsor::getAvailableTiers();
         
-        return view('sponsors.edit', compact('sponsor', 'events', 'tiers', 'selectedEvents'));
+        // Get existing event-sponsor relationships with pivot data
+        $eventSponsors = $sponsor->events->map(function($event) {
+            return [
+                'event_id' => $event->id,
+                'event_name' => $event->title,
+                'tier' => $event->pivot->tier,
+                'contribution_amount' => $event->pivot->contribution_amount,
+                'benefits' => $event->pivot->benefits,
+                'sort_order' => $event->pivot->sort_order
+            ];
+        })->toArray();
+        
+        return view('sponsors.edit', compact('sponsor', 'events', 'tiers', 'eventSponsors'));
     }
 
     /**
@@ -130,8 +151,11 @@ class SponsorController extends Controller
             'tier' => 'required|in:platinum,gold,silver,bronze,partner',
             'sort_order' => 'nullable|integer',
             'is_active' => 'boolean',
-            'event_ids' => 'nullable|array',
-            'event_ids.*' => 'exists:events,id'
+            'event_sponsors' => 'nullable|array',
+            'event_sponsors.*.event_id' => 'required|exists:events,id',
+            'event_sponsors.*.tier' => 'required|in:platinum,gold,silver,bronze,partner',
+            'event_sponsors.*.contribution_amount' => 'nullable|numeric',
+            'event_sponsors.*.benefits' => 'nullable|string'
         ]);
 
         if ($validator->fails()) {
@@ -154,8 +178,20 @@ class SponsorController extends Controller
         
         $sponsor->update($data);
         
-        // Sync events
-        $sponsor->events()->sync($request->event_ids ?? []);
+        // Sync events with pivot data
+        $syncData = [];
+        if ($request->has('event_sponsors')) {
+            foreach ($request->event_sponsors as $eventSponsor) {
+                $syncData[$eventSponsor['event_id']] = [
+                    'tier' => $eventSponsor['tier'],
+                    'contribution_amount' => $eventSponsor['contribution_amount'] ?? null,
+                    'benefits' => $eventSponsor['benefits'] ?? null,
+                    'sort_order' => $eventSponsor['sort_order'] ?? 0
+                ];
+            }
+        }
+        
+        $sponsor->events()->sync($syncData);
         
         return redirect()->route('sponsors.index')
             ->with('success', 'Sponsor berhasil diupdate');
@@ -188,5 +224,18 @@ class SponsorController extends Controller
         
         return redirect()->back()
             ->with('success', "Sponsor berhasil {$status}");
+    }
+    
+    /**
+     * Get event specific sponsor data via AJAX
+     */
+    public function getEventSponsorData(Sponsor $sponsor, Event $event)
+    {
+        $data = $sponsor->getEventSponsorData($event->id);
+        
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
     }
 }

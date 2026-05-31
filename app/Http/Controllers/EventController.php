@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Models\Category;
 use App\Models\Merchandise;
+use App\Models\Sponsor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -22,13 +23,13 @@ class EventController extends Controller
 
         // Organizer hanya lihat event miliknya
         if ($user->role === 'organizer') {
-            $events = Event::with(['category', 'creator'])
+            $events = Event::with(['category', 'creator', 'sponsors'])
                 ->where('created_by', $user->id)
                 ->latest()
                 ->paginate(10);
         } else {
             // Admin lihat semua
-            $events = Event::with(['category', 'creator', 'merchandise'])
+            $events = Event::with(['category', 'creator', 'merchandise', 'sponsors'])
                 ->latest()
                 ->paginate(10);
         }
@@ -57,9 +58,10 @@ class EventController extends Controller
     public function create()
     {
         $categories = Category::all();
-        $merchandise = Merchandise::active()->get(); // Hanya merchandise yang aktif
+        $merchandise = Merchandise::active()->get();
+        $sponsors = Sponsor::where('is_active', true)->orderBy('sort_order')->get();
         
-        return view('events.create', compact('categories', 'merchandise'));
+        return view('events.create', compact('categories', 'merchandise', 'sponsors'));
     }
 
     /**
@@ -89,6 +91,20 @@ class EventController extends Controller
             }
         }
 
+        // Attach sponsors with event-specific tier
+        if ($request->has('sponsors')) {
+            foreach ($request->sponsors as $sponsorData) {
+                if (!empty($sponsorData['sponsor_id'])) {
+                    $event->sponsors()->attach($sponsorData['sponsor_id'], [
+                        'tier' => $sponsorData['tier'] ?? null,
+                        'contribution_amount' => $sponsorData['contribution_amount'] ?? null,
+                        'benefits' => $sponsorData['benefits'] ?? null,
+                        'sort_order' => $sponsorData['sort_order'] ?? 0,
+                    ]);
+                }
+            }
+        }
+
         return redirect()->route('events.index')
             ->with('success', 'Event berhasil dibuat');
     }
@@ -100,9 +116,36 @@ class EventController extends Controller
     {
         $this->authorizeEvent($event);
 
-        $event->load(['category', 'creator', 'galleries', 'merchandise']);
+        // Load all necessary relationships
+        $event->load([
+            'category', 
+            'creator', 
+            'galleries', 
+            'merchandise',
+            'sponsors' => function($query) {
+                $query->where('is_active', true)
+                      ->orderBy('event_sponsor.sort_order')
+                      ->orderBy('sponsors.sort_order');
+            }
+        ]);
 
-        return view('events.show', compact('event'));
+        // Get sponsors grouped by tier for display
+        $sponsorsByTier = [
+            'platinum' => [],
+            'gold' => [],
+            'silver' => [],
+            'bronze' => [],
+            'partner' => []
+        ];
+
+        foreach ($event->sponsors as $sponsor) {
+            $tier = $sponsor->pivot->tier ?? $sponsor->tier;
+            if (isset($sponsorsByTier[$tier])) {
+                $sponsorsByTier[$tier][] = $sponsor;
+            }
+        }
+
+        return view('events.show', compact('event', 'sponsorsByTier'));
     }
 
     /**
@@ -114,11 +157,24 @@ class EventController extends Controller
 
         $categories = Category::all();
         $merchandise = Merchandise::active()->get();
+        $sponsors = Sponsor::where('is_active', true)->orderBy('sort_order')->get();
         
-        // Load existing merchandise relations
-        $event->load('merchandise');
+        // Load existing relationships
+        $event->load(['merchandise', 'sponsors']);
+        
+        // Prepare selected sponsors with their pivot data
+        $selectedSponsors = [];
+        foreach ($event->sponsors as $sponsor) {
+            $selectedSponsors[] = [
+                'sponsor_id' => $sponsor->id,
+                'tier' => $sponsor->pivot->tier,
+                'contribution_amount' => $sponsor->pivot->contribution_amount,
+                'benefits' => $sponsor->pivot->benefits,
+                'sort_order' => $sponsor->pivot->sort_order,
+            ];
+        }
 
-        return view('events.edit', compact('event', 'categories', 'merchandise'));
+        return view('events.edit', compact('event', 'categories', 'merchandise', 'sponsors', 'selectedSponsors'));
     }
 
     /**
@@ -157,6 +213,25 @@ class EventController extends Controller
             $event->merchandise()->detach();
         }
 
+        // Sync sponsors with event-specific tier
+        if ($request->has('sponsors')) {
+            $sponsorSyncData = [];
+            foreach ($request->sponsors as $sponsorData) {
+                if (!empty($sponsorData['sponsor_id'])) {
+                    $sponsorSyncData[$sponsorData['sponsor_id']] = [
+                        'tier' => $sponsorData['tier'] ?? null,
+                        'contribution_amount' => $sponsorData['contribution_amount'] ?? null,
+                        'benefits' => $sponsorData['benefits'] ?? null,
+                        'sort_order' => $sponsorData['sort_order'] ?? 0,
+                    ];
+                }
+            }
+            $event->sponsors()->sync($sponsorSyncData);
+        } else {
+            // If no sponsors, remove all
+            $event->sponsors()->detach();
+        }
+
         return redirect()->route('events.index')
             ->with('success', 'Event berhasil diupdate');
     }
@@ -175,6 +250,9 @@ class EventController extends Controller
 
         // Detach all merchandise relations
         $event->merchandise()->detach();
+        
+        // Detach all sponsor relations
+        $event->sponsors()->detach();
 
         $event->delete();
 

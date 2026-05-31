@@ -194,6 +194,18 @@
                         </button>
                     </form>
                 </div>
+                @if($participant->warning_count > 0)
+                <div class="mt-2">
+                    <a href="{{ route('participants.warnings', $participant) }}" 
+                       class="block text-center bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 px-3 py-2 rounded-lg transition text-center text-sm">
+                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        📋 Lihat History Peringatan ({{ $participant->warning_count }})
+                    </a>
+                </div>
+                @endif
             </div>
 
             <!-- Notes -->
@@ -233,12 +245,25 @@
         <!-- WARNING SYSTEM SECTION -->
         <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                    Status Peringatan
-                </h3>
+                <div class="flex items-center gap-4">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        Status Peringatan
+                    </h3>
+                    
+                    @if($participant->warning_count > 0)
+                    <a href="{{ route('participants.warnings', $participant) }}" 
+                       class="text-blue-400 hover:text-blue-300 text-sm transition flex items-center gap-1 bg-blue-500/10 px-3 py-1 rounded-lg">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Lihat Semua Peringatan ({{ $participant->warning_count }})
+                    </a>
+                    @endif
+                </div>
                 
                 @if(auth()->user() && auth()->user()->role === 'admin')
                 <button type="button" 
@@ -758,49 +783,54 @@
     const nextWarningLevel = document.getElementById('nextWarningLevel');
     const currentLevel = {{ $participant->current_warning_level }};
     
-    warningLevelSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        const sanction = selectedOption.getAttribute('data-sanksi');
-        const level = this.value;
-        
-        if (level) {
-            // Show sanction preview
-            sanctionText.textContent = sanction;
-            sanctionPreview.classList.remove('hidden');
+    if (warningLevelSelect) {
+        warningLevelSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const sanction = selectedOption.getAttribute('data-sanksi');
+            const level = this.value;
             
-            // Update next warning level
-            const newLevel = parseInt(level);
-            nextWarningLevel.textContent = 'Level ' + newLevel;
-            nextWarningLevel.className = newLevel >= 3 ? 'font-semibold text-red-400' : 'font-semibold text-yellow-400';
-        } else {
-            sanctionPreview.classList.add('hidden');
-            nextWarningLevel.textContent = 'Level ' + (currentLevel + 1);
-        }
-    });
+            if (level) {
+                if (sanctionText) sanctionText.textContent = sanction;
+                if (sanctionPreview) sanctionPreview.classList.remove('hidden');
+                
+                const newLevel = parseInt(level);
+                if (nextWarningLevel) {
+                    nextWarningLevel.textContent = 'Level ' + newLevel;
+                    nextWarningLevel.className = newLevel >= 3 ? 'font-semibold text-red-400' : 'font-semibold text-yellow-400';
+                }
+            } else {
+                if (sanctionPreview) sanctionPreview.classList.add('hidden');
+                if (nextWarningLevel) nextWarningLevel.textContent = 'Level ' + (currentLevel + 1);
+            }
+        });
+    }
     
     // Handle reason selection
     const reasonSelect = document.getElementById('reasonSelect');
     const manualReasonContainer = document.getElementById('manualReasonContainer');
     const manualReason = document.getElementById('manualReason');
-    const warningDescription = document.getElementById('warningDescription');
     
-    reasonSelect.addEventListener('change', function() {
-        if (this.value === 'Lainnya') {
-            manualReasonContainer.classList.remove('hidden');
-            manualReason.required = true;
-        } else {
-            manualReasonContainer.classList.add('hidden');
-            manualReason.required = false;
-            manualReason.value = '';
-        }
-    });
+    if (reasonSelect) {
+        reasonSelect.addEventListener('change', function() {
+            if (this.value === 'Lainnya') {
+                if (manualReasonContainer) manualReasonContainer.classList.remove('hidden');
+                if (manualReason) manualReason.required = true;
+            } else {
+                if (manualReasonContainer) manualReasonContainer.classList.add('hidden');
+                if (manualReason) {
+                    manualReason.required = false;
+                    manualReason.value = '';
+                }
+            }
+        });
+    }
     
     // Handle form submission to combine reason
     const warningForm = document.querySelector('#warningModal form');
     if (warningForm) {
         warningForm.addEventListener('submit', function(e) {
-            const warningLevel = warningLevelSelect.value;
-            let reason = reasonSelect.value;
+            const warningLevel = warningLevelSelect ? warningLevelSelect.value : null;
+            let reason = reasonSelect ? reasonSelect.value : null;
             
             if (!warningLevel) {
                 e.preventDefault();
@@ -814,9 +844,8 @@
                 return false;
             }
             
-            // If reason is "Lainnya", use manual reason
             if (reason === 'Lainnya') {
-                const manualReasonValue = manualReason.value.trim();
+                const manualReasonValue = manualReason ? manualReason.value.trim() : '';
                 if (!manualReasonValue) {
                     e.preventDefault();
                     alert('Isi deskripsi alasan untuk pilihan "Lainnya"!');
@@ -825,15 +854,13 @@
                 reason = manualReasonValue;
             }
             
-            // Set the reason value
             const reasonInput = document.createElement('input');
             reasonInput.type = 'hidden';
             reasonInput.name = 'reason';
             reasonInput.value = `[Level ${warningLevel}] ${reason}`;
             this.appendChild(reasonInput);
             
-            // Disable the select so it doesn't submit
-            reasonSelect.disabled = true;
+            if (reasonSelect) reasonSelect.disabled = true;
             
             return true;
         });

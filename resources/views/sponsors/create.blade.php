@@ -5,7 +5,7 @@
 @section('page-description', 'Add a new event sponsor')
 
 @section('content')
-<div class="max-w-4xl mx-auto">
+<div class="max-w-6xl mx-auto">
     <div class="mb-6">
         <a href="{{ route('sponsors.index') }}" class="text-gray-400 hover:text-white transition flex items-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,15 +47,16 @@
                     </div>
 
                     <div>
-                        <label class="block text-gray-300 mb-2 font-semibold">Tier *</label>
+                        <label class="block text-gray-300 mb-2 font-semibold">Default Tier *</label>
                         <select name="tier" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500" required>
-                            <option class="text-black" value="">Pilih Tier</option>
+                            <option class="text-black" value="">Pilih Tier Default</option>
                             <option class="text-black" value="platinum" {{ old('tier') == 'platinum' ? 'selected' : '' }}>Platinum</option>
                             <option class="text-black" value="gold" {{ old('tier') == 'gold' ? 'selected' : '' }}>Gold</option>
                             <option class="text-black" value="silver" {{ old('tier') == 'silver' ? 'selected' : '' }}>Silver</option>
                             <option class="text-black" value="bronze" {{ old('tier') == 'bronze' ? 'selected' : '' }}>Bronze</option>
                             <option class="text-black" value="partner" {{ old('tier') == 'partner' ? 'selected' : '' }}>Partner</option>
                         </select>
+                        <p class="text-xs text-gray-400 mt-1">Tier default jika tidak ditentukan khusus per event</p>
                         @error('tier')
                             <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
                         @enderror
@@ -143,22 +144,61 @@
                 @enderror
             </div>
 
-            <!-- Associated Events -->
+            <!-- Event-Specific Tier Settings -->
             <div class="mt-6">
-                <label class="block text-gray-300 mb-2 font-semibold">Event Terkait</label>
-                <div class="bg-white/5 border border-white/10 rounded-lg p-4 max-h-48 overflow-y-auto">
-                    @foreach($events as $event)
-                        <label class="flex items-center gap-2 mb-2 cursor-pointer">
-                            <input type="checkbox" 
-                                   name="event_ids[]" 
-                                   value="{{ $event->id }}"
-                                   class="w-4 h-4 rounded bg-white/5 border-white/10">
-                            <span class="text-gray-300">{{ $event->title }}</span>
-                            <span class="text-xs text-gray-500">({{ $event->start_date->format('d M Y') }})</span>
-                        </label>
-                    @endforeach
+                <label class="block text-gray-300 mb-2 font-semibold">Pengaturan Tier per Event</label>
+                <p class="text-xs text-gray-400 mb-3">Atur tier berbeda untuk setiap event (opsional)</p>
+                
+                <div id="eventSponsorsContainer">
+                    <div class="event-sponsor-item bg-white/5 border border-white/10 rounded-lg p-4 mb-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-gray-400 text-sm mb-1">Event *</label>
+                                <select name="event_sponsors[0][event_id]" class="event-select w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-green-500">
+                                    <option class="text-black" value="">Pilih Event</option>
+                                    @foreach($events as $event)
+                                        <option class="text-black" value="{{ $event->id }}">{{ $event->title }} ({{ $event->start_date->format('d M Y') }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-400 text-sm mb-1">Tier untuk Event Ini *</label>
+                                <select name="event_sponsors[0][tier]" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-green-500">
+                                    <option class="text-black" value="">Pilih Tier</option>
+                                    <option class="text-black" value="platinum">Platinum</option>
+                                    <option class="text-black" value="gold">Gold</option>
+                                    <option class="text-black" value="silver">Silver</option>
+                                    <option class="text-black" value="bronze">Bronze</option>
+                                    <option class="text-black" value="partner">Partner</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-400 text-sm mb-1">Kontribusi (Rp)</label>
+                                <input type="number" name="event_sponsors[0][contribution_amount]" 
+                                       class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-green-500"
+                                       placeholder="Nominal kontribusi">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-gray-400 text-sm mb-1">Benefits</label>
+                                <textarea name="event_sponsors[0][benefits]" rows="2"
+                                          class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-green-500"
+                                          placeholder="Benefit yang didapat sponsor untuk event ini"></textarea>
+                            </div>
+                            <div class="flex items-end">
+                                <button type="button" class="remove-event-sponsor w-full bg-red-500/20 hover:bg-red-500/40 text-red-300 px-3 py-2 rounded-lg text-sm transition">
+                                    Hapus
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-xs text-gray-400 mt-1">Pilih event yang disponsori oleh sponsor ini</p>
+                
+                <button type="button" id="addEventSponsor" class="mt-2 text-green-400 hover:text-green-300 text-sm flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    + Tambah Event Lain
+                </button>
             </div>
 
             <!-- Logo Preview -->
@@ -179,7 +219,50 @@
     </div>
 </div>
 
+@push('scripts')
 <script>
+    let eventSponsorCount = 1;
+    
+    // Add new event sponsor form
+    document.getElementById('addEventSponsor').addEventListener('click', function() {
+        const container = document.getElementById('eventSponsorsContainer');
+        const template = container.querySelector('.event-sponsor-item').cloneNode(true);
+        
+        // Reset all inputs in the cloned template
+        template.querySelectorAll('select, input, textarea').forEach(input => {
+            const name = input.getAttribute('name');
+            if (name) {
+                input.setAttribute('name', name.replace('[0]', `[${eventSponsorCount}]`));
+            }
+            if (input.tagName === 'SELECT') {
+                input.selectedIndex = 0;
+            } else if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
+                if (input.type !== 'button') {
+                    input.value = '';
+                }
+            }
+        });
+        
+        container.appendChild(template);
+        eventSponsorCount++;
+        
+        // Add remove functionality to new item
+        const removeBtn = template.querySelector('.remove-event-sponsor');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                template.remove();
+            });
+        }
+    });
+    
+    // Add remove functionality to existing remove buttons
+    document.querySelectorAll('.remove-event-sponsor').forEach(btn => {
+        btn.addEventListener('click', function() {
+            btn.closest('.event-sponsor-item').remove();
+        });
+    });
+    
+    // Logo preview
     document.querySelector('input[name="logo"]').addEventListener('change', function(e) {
         const preview = document.getElementById('logoPreview');
         const img = document.getElementById('preview');
@@ -196,4 +279,5 @@
         }
     });
 </script>
+@endpush
 @endsection
