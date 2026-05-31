@@ -4,6 +4,29 @@
 @section('page-title', 'Participant Details')
 @section('page-description', 'View complete participant information, order history, and event history')
 
+@push('styles')
+<style>
+    .warning-card {
+        transition: all 0.3s ease;
+    }
+    .warning-card:hover {
+        transform: translateX(5px);
+    }
+    .warning-level-1 {
+        border-left-color: #f59e0b;
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+    }
+    .warning-level-2 {
+        border-left-color: #ef4444;
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+    }
+    .warning-level-3 {
+        border-left-color: #6b7280;
+        background: linear-gradient(135deg, rgba(107, 114, 128, 0.15), rgba(107, 114, 128, 0.08));
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="mb-6">
     <div class="flex justify-between items-center flex-wrap gap-4">
@@ -207,7 +230,125 @@
             </div>
         </div>
 
-        <!-- Event History (New Section) -->
+        <!-- WARNING SYSTEM SECTION -->
+        <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    Status Peringatan
+                </h3>
+                
+                @if(auth()->user() && auth()->user()->role === 'admin')
+                <button type="button" 
+                        onclick="openWarningModal()"
+                        class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Beri Peringatan
+                </button>
+                @endif
+            </div>
+            
+            @if($participant->current_warning_level == 0 && !$participant->is_suspended)
+                <div class="text-center py-6">
+                    <svg class="w-16 h-16 mx-auto text-green-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-gray-400">Tidak ada peringatan</p>
+                    <p class="text-xs text-green-400 mt-1">Status: Aktif & Aman</p>
+                </div>
+            @else
+                <!-- Current Warning Level Card -->
+                <div class="rounded-lg p-4 mb-4 warning-card warning-level-{{ min($participant->current_warning_level, 3) }} border-l-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-lg font-bold text-white">
+                                    Warning Level {{ $participant->current_warning_level }}
+                                </span>
+                                @if($participant->is_suspended)
+                                    <span class="px-2 py-0.5 bg-red-500/30 text-red-300 rounded-full text-xs">SUSPENDED</span>
+                                @endif
+                            </div>
+                            <p class="text-sm text-gray-300">
+                                {!! $participant->current_warning_level == 1 ? '⚠️ Tidak bisa join <strong class="text-yellow-300">2 event berikutnya</strong>' : 
+                                   ($participant->current_warning_level == 2 ? '⚠️ Tidak bisa join <strong class="text-red-300">5 event berikutnya</strong>' : 
+                                   '⛔ Akun <strong class="text-gray-300">dinonaktifkan permanen</strong>') !!}
+                            </p>
+                            @if($participant->suspended_until && $participant->is_suspended)
+                                <p class="text-xs text-gray-400 mt-2">
+                                    Suspended until: {{ $participant->suspended_until->format('d M Y H:i') }}
+                                    @php
+                                        $remainingDays = now()->diffInDays($participant->suspended_until, false);
+                                    @endphp
+                                    @if($remainingDays > 0)
+                                        <span class="text-yellow-400">({{ $remainingDays }} days remaining)</span>
+                                    @endif
+                                </p>
+                            @endif
+                            @if($participant->suspension_reason)
+                                <p class="text-xs text-gray-500 mt-1">Reason: {{ $participant->suspension_reason }}</p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Active Warnings List -->
+                @if($participant->activeWarnings && $participant->activeWarnings->count() > 0)
+                    <div class="mt-4">
+                        <label class="text-xs text-gray-400 mb-2 block">Riwayat Peringatan Aktif:</label>
+                        <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                            @foreach($participant->activeWarnings as $warning)
+                            <div class="bg-white/5 rounded-lg p-3 warning-card">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="text-sm font-semibold text-yellow-400">
+                                                Warning {{ $warning->warning_level }}
+                                            </span>
+                                            <span class="text-xs text-gray-500">
+                                                {{ $warning->issued_at->format('d/m/Y H:i') }}
+                                            </span>
+                                        </div>
+                                        <p class="text-sm text-gray-300">
+                                            <strong class="text-gray-400">Reason:</strong> {{ $warning->reason }}
+                                        </p>
+                                        @if($warning->description)
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                {{ $warning->description }}
+                                            </p>
+                                        @endif
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            Issued by: {{ $warning->issuer->name ?? 'System' }}
+                                        </p>
+                                    </div>
+                                    @if(auth()->user() && auth()->user()->role === 'admin')
+                                    <form action="{{ route('participants.remove-warning', [$participant->id, $warning->id]) }}" 
+                                          method="POST" 
+                                          onsubmit="return confirm('Yakin ingin menghapus warning ini?')"
+                                          class="ml-2">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-400 hover:text-red-300 transition" title="Hapus Warning">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                    @endif
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            @endif
+        </div>
+
+        <!-- Event History -->
         <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
@@ -456,6 +597,132 @@
     </div>
 </div>
 
+<!-- Modal for issuing warning -->
+<div id="warningModal" class="fixed inset-0 bg-black/70 z-50 hidden items-center justify-center p-4" onclick="closeWarningModal()">
+    <div class="bg-gray-900 rounded-xl max-w-md w-full border border-white/10" onclick="event.stopPropagation()">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    Beri Peringatan
+                </h3>
+                <button onclick="closeWarningModal()" class="text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <form action="{{ route('participants.issue-warning', $participant->id) }}" method="POST">
+                @csrf
+                
+                <!-- Pilih Level Warning dengan Dropdown -->
+                <div class="mb-4">
+                    <label class="block text-gray-300 mb-2 font-semibold">Level Peringatan *</label>
+                    <select name="warning_level" id="warningLevelSelect" 
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-red-500"
+                            required>
+                        <option value="" class="text-black">-- Pilih Level Peringatan --</option>
+                        <option value="1" class="text-black" data-sanksi="Tidak bisa join 2 event berikutnya">
+                            ⚠️ Warning Level 1 - Tidak bisa join 2 event berikutnya
+                        </option>
+                        <option value="2" class="text-black" data-sanksi="Tidak bisa join 5 event berikutnya">
+                            ⚠️ Warning Level 2 - Tidak bisa join 5 event berikutnya
+                        </option>
+                        <option value="3" class="text-black" data-sanksi="Akun dinonaktifkan permanen">
+                            ⛔ Warning Level 3 - Suspensi permanen
+                        </option>
+                    </select>
+                    <p class="text-xs text-gray-400 mt-1" id="warningLevelHint">
+                        Pilih level peringatan yang akan diberikan
+                    </p>
+                </div>
+                
+                <!-- Alasan Peringatan -->
+                <div class="mb-4">
+                    <label class="block text-gray-300 mb-2 font-semibold">Alasan Peringatan *</label>
+                    <select name="reason" id="reasonSelect" 
+                            class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-red-500"
+                            required>
+                        <option value="" class="text-black">-- Pilih Alasan --</option>
+                        <option value="Melanggar peraturan event" class="text-black">Melanggar peraturan event</option>
+                        <option value="Perilaku tidak sopan" class="text-black">Perilaku tidak sopan</option>
+                        <option value="Membatalkan partisipasi tanpa pemberitahuan" class="text-black">Membatalkan partisipasi tanpa pemberitahuan</option>
+                        <option value="Melanggar kode etik" class="text-black">Melanggar kode etik</option>
+                        <option value="Menyebabkan gangguan selama event" class="text-black">Menyebabkan gangguan selama event</option>
+                        <option value="Pelanggaran berulang" class="text-black">Pelanggaran berulang</option>
+                        <option value="Lainnya" class="text-black">Lainnya (isi manual)</option>
+                    </select>
+                </div>
+                
+                <!-- Deskripsi Manual (muncul jika pilih "Lainnya") -->
+                <div class="mb-4 hidden" id="manualReasonContainer">
+                    <label class="block text-gray-300 mb-2 font-semibold">Deskripsi Alasan *</label>
+                    <input type="text" 
+                           name="manual_reason" 
+                           id="manualReason"
+                           class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-red-500"
+                           placeholder="Tulis alasan peringatan...">
+                </div>
+                
+                <!-- Deskripsi Detail -->
+                <div class="mb-4">
+                    <label class="block text-gray-300 mb-2 font-semibold">Deskripsi Detail (Opsional)</label>
+                    <textarea name="description" 
+                              id="warningDescription"
+                              rows="3"
+                              class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-red-500"
+                              placeholder="Jelaskan detail pelanggaran yang terjadi..."></textarea>
+                </div>
+                
+                <!-- Preview Sanksi -->
+                <div id="sanctionPreview" class="hidden bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        <div>
+                            <p class="text-xs text-yellow-300 font-semibold mb-1">⚠️ Konsekuensi yang akan diterima:</p>
+                            <p id="sanctionText" class="text-sm text-white"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Info Current Warning Level -->
+                <div class="bg-white/5 rounded-lg p-3 mb-4">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="text-gray-400">Current Warning Level:</span>
+                        <span class="font-semibold 
+                            @if($participant->current_warning_level == 0) text-green-400
+                            @elseif($participant->current_warning_level == 1) text-yellow-400
+                            @elseif($participant->current_warning_level == 2) text-orange-400
+                            @else text-red-400 @endif">
+                            {{ $participant->current_warning_level == 0 ? 'Clean' : 'Level ' . $participant->current_warning_level }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center text-sm mt-1">
+                        <span class="text-gray-400">After this warning:</span>
+                        <span class="font-semibold text-red-400" id="nextWarningLevel">
+                            Level {{ $participant->current_warning_level + 1 }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition">
+                        Beri Peringatan
+                    </button>
+                    <button type="button" onclick="closeWarningModal()" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition">
+                        Batal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
     function copyHashId() {
@@ -469,6 +736,115 @@
             }, 2000);
         });
     }
+    
+    function openWarningModal() {
+        const modal = document.getElementById('warningModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeWarningModal() {
+        const modal = document.getElementById('warningModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = 'auto';
+    }
+    
+    // Handle warning level selection
+    const warningLevelSelect = document.getElementById('warningLevelSelect');
+    const sanctionPreview = document.getElementById('sanctionPreview');
+    const sanctionText = document.getElementById('sanctionText');
+    const nextWarningLevel = document.getElementById('nextWarningLevel');
+    const currentLevel = {{ $participant->current_warning_level }};
+    
+    warningLevelSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const sanction = selectedOption.getAttribute('data-sanksi');
+        const level = this.value;
+        
+        if (level) {
+            // Show sanction preview
+            sanctionText.textContent = sanction;
+            sanctionPreview.classList.remove('hidden');
+            
+            // Update next warning level
+            const newLevel = parseInt(level);
+            nextWarningLevel.textContent = 'Level ' + newLevel;
+            nextWarningLevel.className = newLevel >= 3 ? 'font-semibold text-red-400' : 'font-semibold text-yellow-400';
+        } else {
+            sanctionPreview.classList.add('hidden');
+            nextWarningLevel.textContent = 'Level ' + (currentLevel + 1);
+        }
+    });
+    
+    // Handle reason selection
+    const reasonSelect = document.getElementById('reasonSelect');
+    const manualReasonContainer = document.getElementById('manualReasonContainer');
+    const manualReason = document.getElementById('manualReason');
+    const warningDescription = document.getElementById('warningDescription');
+    
+    reasonSelect.addEventListener('change', function() {
+        if (this.value === 'Lainnya') {
+            manualReasonContainer.classList.remove('hidden');
+            manualReason.required = true;
+        } else {
+            manualReasonContainer.classList.add('hidden');
+            manualReason.required = false;
+            manualReason.value = '';
+        }
+    });
+    
+    // Handle form submission to combine reason
+    const warningForm = document.querySelector('#warningModal form');
+    if (warningForm) {
+        warningForm.addEventListener('submit', function(e) {
+            const warningLevel = warningLevelSelect.value;
+            let reason = reasonSelect.value;
+            
+            if (!warningLevel) {
+                e.preventDefault();
+                alert('Pilih level peringatan terlebih dahulu!');
+                return false;
+            }
+            
+            if (!reason) {
+                e.preventDefault();
+                alert('Pilih alasan peringatan!');
+                return false;
+            }
+            
+            // If reason is "Lainnya", use manual reason
+            if (reason === 'Lainnya') {
+                const manualReasonValue = manualReason.value.trim();
+                if (!manualReasonValue) {
+                    e.preventDefault();
+                    alert('Isi deskripsi alasan untuk pilihan "Lainnya"!');
+                    return false;
+                }
+                reason = manualReasonValue;
+            }
+            
+            // Set the reason value
+            const reasonInput = document.createElement('input');
+            reasonInput.type = 'hidden';
+            reasonInput.name = 'reason';
+            reasonInput.value = `[Level ${warningLevel}] ${reason}`;
+            this.appendChild(reasonInput);
+            
+            // Disable the select so it doesn't submit
+            reasonSelect.disabled = true;
+            
+            return true;
+        });
+    }
+    
+    // Close modal with ESC key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeWarningModal();
+        }
+    });
 </script>
 @endpush
 @endsection

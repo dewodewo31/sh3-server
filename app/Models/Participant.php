@@ -14,7 +14,7 @@ class Participant extends Authenticatable
     
     protected $fillable = [
         'hash_id',
-        'participant_type',  // member / non_member
+        'participant_type',  // Hanya satu kali
         'name',
         'email',
         'phone',
@@ -28,6 +28,11 @@ class Participant extends Authenticatable
         'identity_photo',
         'photo',
         'status',
+        'warning_count',
+        'current_warning_level',
+        'suspended_until',
+        'is_suspended',
+        'suspension_reason',
         'last_login_at',
         'last_login_ip',
         'notes'
@@ -35,7 +40,11 @@ class Participant extends Authenticatable
 
     protected $casts = [
         'birthdate' => 'date',
-        'last_login_at' => 'datetime'
+        'last_login_at' => 'datetime',
+        'suspended_until' => 'datetime',
+        'is_suspended' => 'boolean',
+        'warning_count' => 'integer',
+        'current_warning_level' => 'integer'
     ];
 
     protected $hidden = [
@@ -43,7 +52,11 @@ class Participant extends Authenticatable
     ];
 
     protected $attributes = [
-        'participant_type' => 'non_member' // Default: non_member
+        'participant_type' => 'non_member',
+        'status' => 'active', // Tambahkan default status
+        'warning_count' => 0,
+        'current_warning_level' => 0,
+        'is_suspended' => false
     ];
 
     protected static function booted()
@@ -61,7 +74,6 @@ class Participant extends Authenticatable
 
     /**
      * Generate unique hash ID for member (4 digits numeric)
-     * Example: 0001, 0002, 0003...
      */
     public static function generateMemberHashId(): string
     {
@@ -81,7 +93,6 @@ class Participant extends Authenticatable
 
     /**
      * Generate hash ID for non-member
-     * Example: NM01, NM02, NM03...
      */
     public static function generateNonMemberHashId(): string
     {
@@ -91,7 +102,6 @@ class Participant extends Authenticatable
             ->first();
         
         if ($lastNonMember && $lastNonMember->hash_id) {
-            // Extract number from NM01 -> 1
             $lastNumber = (int) substr($lastNonMember->hash_id, 2);
             $newNumber = $lastNumber + 1;
         } else {
@@ -109,83 +119,160 @@ class Participant extends Authenticatable
         return static::generateMemberHashId();
     }
 
+    // ==================== WARNING METHODS ====================
+    
     /**
-     * Get identity photo URL
+     * Check if participant can join events
      */
-    public function getIdentityPhotoUrlAttribute()
+    public function canJoinEvent()
     {
-        return $this->identity_photo ? asset('storage/' . $this->identity_photo) : null;
+        if ($this->is_suspended) {
+            if ($this->suspended_until && now()->lt($this->suspended_until)) {
+                return [
+                    'can_join' => false,
+                    'reason' => "Akun Anda sedang disuspensi hingga " . $this->suspended_until->format('d M Y H:i'),
+                    'suspension_type' => 'temporary'
+                ];
+            } elseif (!$this->suspended_until) {
+                return [
+                    'can_join' => false,
+                    'reason' => "Akun Anda telah dinonaktifkan permanen karena pelanggaran berat",
+                    'suspension_type' => 'permanent'
+                ];
+            } else {
+                // Auto reactivate if suspension period has passed
+                $this->update([
+                    'is_suspended' => false,
+                    'suspended_until' => null,
+                    'suspension_reason' => null
+                ]);
+                return ['can_join' => true];
+            }
+        }
+        
+        return ['can_join' => true];
     }
 
     /**
-     * Get photo URL
+     * Get suspension info
      */
-    public function getPhotoUrlAttribute()
+    public function getSuspensionInfo()
     {
-        return $this->photo ? asset('storage/' . $this->photo) : null;
+        if (!$this->is_suspended) {
+            return null;
+        }
+
+        if ($this->suspended_until && now()->lt($this->suspended_until)) {
+            $remainingDays = now()->diffInDays($this->suspended_until, false);
+            return [
+                'is_suspended' => true,
+                'type' => 'temporary',
+                'reason' => $this->suspension_reason,
+                'until' => $this->suspended_until,
+                'remaining_days' => max(0, (int)$remainingDays),
+                'warning_level' => $this->current_warning_level
+            ];
+        } elseif ($this->suspended_until && now()->gte($this->suspended_until)) {
+            // Auto reactivate
+            $this->update([
+                'is_suspended' => false,
+                'suspended_until' => null,
+                'suspension_reason' => null
+            ]);
+            return null;
+        } else {
+            return [
+                'is_suspended' => true,
+                'type' => 'permanent',
+                'reason' => $this->suspension_reason,
+                'warning_level' => $this->current_warning_level
+            ];
+        }
     }
 
     /**
-     * Check if participant is member
+     * Get warning badge
      */
-    public function isMember()
+    public function getWarningBadgeAttribute()
     {
-        return $this->participant_type === 'member';
+        if ($this->current_warning_level == 0) {
+            return '<span class="badge badge-success">Aman</span>';
+        } elseif ($this->current_warning_level == 1) {
+            return '<span class="badge badge-warning">Warning 1</span>';
+        } elseif ($this->current_warning_level == 2) {
+            return '<span class="badge badge-danger">Warning 2</span>';
+        } elseif ($this->current_warning_level >= 3) {
+            return '<span class="badge badge-dark">Suspended</span>';
+        }
+        return '<span class="badge badge-secondary">Unknown</span>';
     }
 
-    /**
-     * Check if participant is non-member
-     */
-    public function isNonMember()
-    {
-        return $this->participant_type === 'non_member';
-    }
-
-    /**
-     * Get orders for this participant
-     */
+    // ==================== RELATIONS ====================
+    
     public function orders()
     {
         return $this->hasMany(Order::class, 'participant_id');
     }
 
-    /**
-     * Get payments for this participant
-     */
     public function payments()
     {
         return $this->hasManyThrough(Payment::class, Order::class);
     }
     
-    /**
-     * Check if participant is active
-     */
+    public function warnings()
+    {
+        return $this->hasMany(ParticipantWarning::class);
+    }
+
+    public function activeWarnings()
+    {
+        return $this->hasMany(ParticipantWarning::class)
+            ->where('is_active', true)
+            ->where(function($q) {
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '>', now());
+            });
+    }
+
+    // ==================== HELPER METHODS ====================
+    
+    public function getIdentityPhotoUrlAttribute()
+    {
+        return $this->identity_photo ? asset('storage/' . $this->identity_photo) : null;
+    }
+
+    public function getPhotoUrlAttribute()
+    {
+        return $this->photo ? asset('storage/' . $this->photo) : null;
+    }
+
+    public function isMember()
+    {
+        return $this->participant_type === 'member';
+    }
+
+    public function isNonMember()
+    {
+        return $this->participant_type === 'non_member';
+    }
+    
     public function isActive()
     {
         return $this->status === 'active';
     }
     
-    /**
-     * Activate participant account
-     */
     public function activate()
     {
         $this->status = 'active';
         return $this->save();
     }
 
-    /**
-     * Deactivate participant account
-     */
     public function deactivate()
     {
         $this->status = 'inactive';
         return $this->save();
     }
 
-    /**
-     * Upgrade non-member to member
-     */
     public function upgradeToMember()
     {
         if ($this->participant_type === 'member') {
@@ -198,9 +285,8 @@ class Participant extends Authenticatable
         return $this->save();
     }
 
-    /**
-     * Get the name of the unique identifier for the user.
-     */
+    // ==================== AUTHENTICATION METHODS ====================
+    
     public function getAuthIdentifierName()
     {
         return 'hash_id';

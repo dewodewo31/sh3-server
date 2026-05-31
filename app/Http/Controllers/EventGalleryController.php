@@ -52,9 +52,10 @@ class EventGalleryController extends Controller
             }
         }
         
-        // Handle Google Drive links
+        // Handle Google Drive links (dipisahkan dengan koma)
         if ($request->has('google_drive_links') && !empty($request->google_drive_links)) {
-            $links = explode("\n", $request->google_drive_links);
+            // Pisahkan dengan koma, spasi, atau enter
+            $links = preg_split('/[\s,]+/', $request->google_drive_links);
             $links = array_filter(array_map('trim', $links));
             
             foreach ($links as $link) {
@@ -103,9 +104,10 @@ class EventGalleryController extends Controller
             }
         }
         
-        // Handle Google Drive links
+        // Handle Google Drive links (dipisahkan dengan koma)
         if ($request->has('google_drive_links') && !empty($request->google_drive_links)) {
-            $links = explode("\n", $request->google_drive_links);
+            // Pisahkan dengan koma, spasi, atau enter
+            $links = preg_split('/[\s,]+/', $request->google_drive_links);
             $links = array_filter(array_map('trim', $links));
             
             foreach ($links as $link) {
@@ -145,7 +147,7 @@ class EventGalleryController extends Controller
     /**
      * Remove the specified gallery from storage.
      */
-    public function destroy(EventGallery $eventGallery)  // ← Ganti parameter name
+    public function destroy(EventGallery $eventGallery)
     {
         try {
             // Hapus semua gambar dari storage

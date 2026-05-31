@@ -80,41 +80,64 @@
                     @enderror
                 </div>
 
-                <!-- Google Drive Link Section -->
-                <div id="driveSection" class="hidden">
-                    <div class="border-2 border-white/20 rounded-lg p-6">
-                        <label class="block text-gray-300 mb-2 font-semibold">Link Google Drive (pisahkan dengan enter)</label>
-                        <textarea name="google_drive_links" 
-                                  id="googleDriveLinks"
-                                  rows="5"
-                                  class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 font-mono text-sm"
-                                  placeholder="https://drive.google.com/file/d/FILE_ID/view
-https://drive.google.com/open?id=FILE_ID
-https://drive.google.com/uc?id=FILE_ID"></textarea>
-                        
-                        <div class="flex justify-between items-center mt-3">
-                            <button type="button" id="openLinksBtn" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg text-sm transition flex items-center gap-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                                </svg>
-                                Buka Semua Link
-                            </button>
-                        </div>
-                        
-                        <div id="driveLinksPreview" class="mt-4 hidden">
-                            <label class="block text-gray-300 mb-2 font-semibold text-sm">Preview Link:</label>
-                            <div id="linksContainer" class="space-y-2 max-h-40 overflow-y-auto"></div>
-                        </div>
-                        
-                        <p class="text-xs text-gray-400 mt-3">
-                            💡 Tips: 
-                            <br>• Buka file di Google Drive, klik "Bagikan" dan set "Siapa saja dengan tautan dapat melihat"
-                            <br>• Salin link dan tempel di sini (satu link per baris)
-                            <br>• Klik "Ekstrak File ID" untuk memvalidasi link
-                            <br>• Klik "Buka Semua Link" untuk membuka semua link di tab baru
-                        </p>
-                    </div>
-                </div>
+<!-- Google Drive Link Section -->
+<div id="driveSection" class="hidden">
+    <div class="border-2 border-white/20 rounded-lg p-6">
+        <label class="block text-gray-300 mb-2 font-semibold">
+            Link Google Drive (pisahkan dengan koma)
+        </label>
+        
+        <textarea name="google_drive_links" 
+                  id="googleDriveLinks"
+                  rows="6"
+                  class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 font-mono text-sm"
+                  placeholder="https://drive.google.com/file/d/FILE_ID/view, https://drive.google.com/open?id=FILE_ID, https://drive.google.com/uc?id=FILE_ID"></textarea>
+        
+        <div class="flex flex-wrap gap-2 mt-3">
+            <button type="button" id="formatLinksBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm transition flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                Format Ulang Link
+            </button>
+            
+            <button type="button" id="extractIdsBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-lg text-sm transition flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+                Ekstrak File ID
+            </button>
+            
+            <button type="button" id="openLinksBtn" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-lg text-sm transition flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+                Buka Semua Link
+            </button>
+            
+            <button type="button" id="clearLinksBtn" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                Clear All
+            </button>
+        </div>
+        
+        <div id="driveLinksPreview" class="mt-4 hidden">
+            <label class="block text-gray-300 mb-2 font-semibold text-sm">Preview Link:</label>
+            <div id="linksContainer" class="space-y-2 max-h-40 overflow-y-auto"></div>
+        </div>
+        
+        <p class="text-xs text-gray-400 mt-3">
+            💡 Tips: 
+            <br>• Pisahkan link dengan <span class="text-yellow-400 font-semibold">koma (,)</span> atau spasi
+            <br>• Contoh: <code class="text-green-400">link1, link2, link3</code>
+            <br>• Bisa juga dengan enter (setiap baris otomatis dipisah)
+            <br>• Klik "Ekstrak File ID" untuk mengambil ID dari link
+            <br>• Pastikan file di Google Drive sudah di-set "Siapa saja dengan tautan dapat melihat"
+        </p>
+    </div>
+</div>
             </div>
 
             <!-- Preview Area untuk File Upload -->
@@ -142,23 +165,25 @@ https://drive.google.com/uc?id=FILE_ID"></textarea>
     const fileSection = document.getElementById('fileSection');
     const driveSection = document.getElementById('driveSection');
     
-    tabFile.addEventListener('click', function() {
-        fileSection.classList.remove('hidden');
-        driveSection.classList.add('hidden');
-        tabFile.classList.add('text-green-400', 'border-green-400');
-        tabFile.classList.remove('text-gray-400');
-        tabDrive.classList.remove('text-green-400', 'border-green-400');
-        tabDrive.classList.add('text-gray-400');
-    });
-    
-    tabDrive.addEventListener('click', function() {
-        fileSection.classList.add('hidden');
-        driveSection.classList.remove('hidden');
-        tabDrive.classList.add('text-green-400', 'border-green-400');
-        tabDrive.classList.remove('text-gray-400');
-        tabFile.classList.remove('text-green-400', 'border-green-400');
-        tabFile.classList.add('text-gray-400');
-    });
+    if (tabFile && tabDrive) {
+        tabFile.addEventListener('click', function() {
+            fileSection.classList.remove('hidden');
+            driveSection.classList.add('hidden');
+            tabFile.classList.add('text-green-400', 'border-green-400');
+            tabFile.classList.remove('text-gray-400');
+            tabDrive.classList.remove('text-green-400', 'border-green-400');
+            tabDrive.classList.add('text-gray-400');
+        });
+        
+        tabDrive.addEventListener('click', function() {
+            fileSection.classList.add('hidden');
+            driveSection.classList.remove('hidden');
+            tabDrive.classList.add('text-green-400', 'border-green-400');
+            tabDrive.classList.remove('text-gray-400');
+            tabFile.classList.remove('text-green-400', 'border-green-400');
+            tabFile.classList.add('text-gray-400');
+        });
+    }
     
     // Fungsi untuk mengekstrak File ID dari URL Google Drive
     function extractFileId(url) {
@@ -183,28 +208,36 @@ https://drive.google.com/uc?id=FILE_ID"></textarea>
         return `https://drive.google.com/file/d/${fileId}/view`;
     }
     
+    // Fungsi untuk memisahkan link (koma, spasi, atau enter)
+    function splitLinks(input) {
+        // Pisahkan dengan koma, spasi, atau new line
+        let links = input.split(/[,\s\n]+/);
+        // Filter empty strings dan trim
+        return links.filter(link => link.trim().length > 0).map(link => link.trim());
+    }
+    
     // Update preview links
     function updateLinksPreview() {
         const textarea = document.getElementById('googleDriveLinks');
         const previewDiv = document.getElementById('driveLinksPreview');
         const linksContainer = document.getElementById('linksContainer');
         
-        let lines = textarea.value.split('\n');
+        if (!textarea || !previewDiv || !linksContainer) return;
+        
+        let text = textarea.value;
+        let links = splitLinks(text);
         let validLinks = [];
         
         linksContainer.innerHTML = '';
         
-        for (let line of lines) {
-            let trimmedLine = line.trim();
-            if (trimmedLine) {
-                let fileId = extractFileId(trimmedLine);
-                if (fileId) {
-                    validLinks.push({
-                        original: trimmedLine,
-                        fileId: fileId,
-                        viewUrl: getViewUrl(fileId)
-                    });
-                }
+        for (let link of links) {
+            let fileId = extractFileId(link);
+            if (fileId) {
+                validLinks.push({
+                    original: link,
+                    fileId: fileId,
+                    viewUrl: getViewUrl(fileId)
+                });
             }
         }
         
@@ -219,11 +252,18 @@ https://drive.google.com/uc?id=FILE_ID"></textarea>
                         <code class="text-green-400 text-xs font-mono">${link.fileId}</code>
                         <p class="text-xs text-gray-400 truncate">${link.original.substring(0, 60)}${link.original.length > 60 ? '...' : ''}</p>
                     </div>
-                    <a href="${link.viewUrl}" target="_blank" class="text-blue-400 hover:text-blue-300 ml-2 flex-shrink-0" title="Buka di Google Drive">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                        </svg>
-                    </a>
+                    <div class="flex gap-2 ml-2 flex-shrink-0">
+                        <a href="${link.viewUrl}" target="_blank" class="text-blue-400 hover:text-blue-300" title="Buka di Google Drive">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                        </a>
+                        <button type="button" onclick="copyToClipboard('${link.fileId}')" class="text-gray-400 hover:text-white" title="Copy File ID">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                            </svg>
+                        </button>
+                    </div>
                 `;
                 linksContainer.appendChild(linkDiv);
             });
@@ -232,25 +272,35 @@ https://drive.google.com/uc?id=FILE_ID"></textarea>
         }
     }
     
-    // Ekstrak semua File ID dari textarea
+    // Format ulang link (gabungkan dengan koma)
+    document.getElementById('formatLinksBtn')?.addEventListener('click', function() {
+        const textarea = document.getElementById('googleDriveLinks');
+        let text = textarea.value;
+        let links = splitLinks(text);
+        
+        if (links.length > 0) {
+            textarea.value = links.join(', ');
+            updateLinksPreview();
+        }
+    });
+    
+    // Ekstrak semua File ID
     document.getElementById('extractIdsBtn')?.addEventListener('click', function() {
         const textarea = document.getElementById('googleDriveLinks');
-        let lines = textarea.value.split('\n');
-        let extractedLines = [];
+        let text = textarea.value;
+        let links = splitLinks(text);
+        let extractedIds = [];
         
-        for (let line of lines) {
-            let trimmedLine = line.trim();
-            if (trimmedLine) {
-                let fileId = extractFileId(trimmedLine);
-                if (fileId) {
-                    extractedLines.push(fileId);
-                } else {
-                    extractedLines.push(trimmedLine);
-                }
+        for (let link of links) {
+            let fileId = extractFileId(link);
+            if (fileId) {
+                extractedIds.push(fileId);
+            } else {
+                extractedIds.push(link);
             }
         }
         
-        textarea.value = extractedLines.join('\n');
+        textarea.value = extractedIds.join(', ');
         updateLinksPreview();
         alert('File ID berhasil diekstrak!');
     });
@@ -258,17 +308,15 @@ https://drive.google.com/uc?id=FILE_ID"></textarea>
     // Buka semua link Google Drive
     document.getElementById('openLinksBtn')?.addEventListener('click', function() {
         const textarea = document.getElementById('googleDriveLinks');
-        let lines = textarea.value.split('\n');
+        let text = textarea.value;
+        let links = splitLinks(text);
         let openedCount = 0;
         
-        for (let line of lines) {
-            let trimmedLine = line.trim();
-            if (trimmedLine) {
-                let fileId = extractFileId(trimmedLine);
-                if (fileId) {
-                    window.open(getViewUrl(fileId), '_blank');
-                    openedCount++;
-                }
+        for (let link of links) {
+            let fileId = extractFileId(link);
+            if (fileId) {
+                window.open(getViewUrl(fileId), '_blank');
+                openedCount++;
             }
         }
         
@@ -278,6 +326,21 @@ https://drive.google.com/uc?id=FILE_ID"></textarea>
             alert('Tidak ada link Google Drive yang valid ditemukan.');
         }
     });
+    
+    // Clear all links
+    document.getElementById('clearLinksBtn')?.addEventListener('click', function() {
+        if (confirm('Yakin ingin menghapus semua link?')) {
+            document.getElementById('googleDriveLinks').value = '';
+            updateLinksPreview();
+        }
+    });
+    
+    // Copy to clipboard function
+    window.copyToClipboard = function(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            alert('File ID berhasil disalin: ' + text);
+        });
+    };
     
     // Update preview ketika textarea berubah
     const driveTextarea = document.getElementById('googleDriveLinks');
@@ -290,6 +353,8 @@ https://drive.google.com/uc?id=FILE_ID"></textarea>
     function previewImages(input) {
         const previewArea = document.getElementById('previewArea');
         const previewContainer = document.getElementById('previewContainer');
+        
+        if (!previewArea || !previewContainer) return;
         
         previewContainer.innerHTML = '';
         

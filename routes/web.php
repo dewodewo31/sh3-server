@@ -74,20 +74,51 @@ Route::middleware(['auth', 'role:admin,organizer'])->group(function () {
     Route::get('events/{event}/export-brochure', [EventController::class, 'exportBrochurePdf'])->name('events.export-brochure');
     Route::get('events/export/all/pdf', [EventController::class, 'exportAllPdf'])->name('events.export-all-pdf');
     
-    // Participant routes
-    Route::get('attendance/{eventId}/qrcode', [AttendanceController::class, 'showQrCode'])->name('attendance.qrcode');
+    // Participant routes with WARNING SYSTEM
+    Route::prefix('participants')->name('participants.')->group(function () {
+        // Basic CRUD
+        Route::get('/', [ParticipantController::class, 'index'])->name('index');
+        Route::get('/create', [ParticipantController::class, 'create'])->name('create');
+        Route::post('/', [ParticipantController::class, 'store'])->name('store');
+        Route::get('/{participant}', [ParticipantController::class, 'show'])->name('show');
+        Route::get('/{participant}/edit', [ParticipantController::class, 'edit'])->name('edit');
+        Route::put('/{participant}', [ParticipantController::class, 'update'])->name('update');
+        Route::delete('/{participant}', [ParticipantController::class, 'destroy'])->name('destroy');
+        
+        // Participant Management
+        Route::get('/{participant}/regenerate-hash', [ParticipantController::class, 'regenerateHashId'])->name('regenerate-hash');
+        Route::post('/{participant}/toggle-status', [ParticipantController::class, 'toggleStatus'])->name('toggle-status');
+        Route::get('/{participant}/upgrade-to-member', [ParticipantController::class, 'upgradeToMember'])->name('upgrade-to-member');
+        
+        // Export
+        Route::get('/export/csv', [ParticipantController::class, 'export'])->name('export');
+        Route::get('/search', [ParticipantController::class, 'search'])->name('search');
+        Route::get('/{participant}/export-pdf', [ParticipantController::class, 'exportPdf'])->name('export-pdf');
+        Route::get('/export/all/pdf', [ParticipantController::class, 'exportAllPdf'])->name('export-all-pdf');
+        
+        // ========== WARNING SYSTEM ROUTES ==========
+        // Issue warning to participant
+        Route::post('/{participant}/issue-warning', [ParticipantController::class, 'issueWarning'])->name('issue-warning');
+        
+        // Get participant warnings (AJAX or view)
+        Route::get('/{participant}/warnings', [ParticipantController::class, 'getWarnings'])->name('warnings');
+        
+        // Remove warning from participant
+        Route::delete('/{participant}/warnings/{warning}', [ParticipantController::class, 'removeWarning'])->name('remove-warning');
+        
+        // Check if participant can join event (API/AJAX)
+        Route::get('/{participant}/check-can-join', [ParticipantController::class, 'checkCanJoinEvent'])->name('check-can-join');
+    });
     
-    // Scanner routes (admin/organizer)
+    // Attendance routes
+    Route::get('attendance/{eventId}/qrcode', [AttendanceController::class, 'showQrCode'])->name('attendance.qrcode');
     Route::get('attendance/scanner', [AttendanceController::class, 'scanner'])->name('attendance.scanner');
     Route::get('attendance/scan/{qrCode}', [AttendanceController::class, 'scan'])->name('attendance.scan');
-    
-    // API for scanner
     Route::get('attendance/status/{qrCode}', [AttendanceController::class, 'getStatus'])->name('attendance.status');
-    
-    // Event attendance list (admin/owner)
     Route::get('events/{event}/attendance', [AttendanceController::class, 'eventAttendance'])->name('attendance.event-list');
     Route::get('events/{event}/attendance/export', [AttendanceController::class, 'export'])->name('attendance.export');
 
+    // Merchandise
     Route::resource('merchandise', MerchandiseController::class);
     Route::post('merchandise/{merchandise}/update-stock', [MerchandiseController::class, 'updateStock'])->name('merchandise.update-stock');
     Route::post('merchandise/{merchandise}/toggle-status', [MerchandiseController::class, 'toggleStatus'])->name('merchandise.toggle-status');
@@ -110,32 +141,4 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     
     // Users Management
     Route::resource('users', UserController::class);
-    
-    // Participants Management
-    Route::resource('participants', ParticipantController::class);
-    
-    // Participant Additional Routes
-    Route::get('participants/{participant}/regenerate-hash', [ParticipantController::class, 'regenerateHashId'])
-        ->name('participants.regenerate-hash');
-    
-    Route::post('participants/{participant}/toggle-status', [ParticipantController::class, 'toggleStatus'])
-        ->name('participants.toggle-status');
-    
-    // 👇 NEW: Upgrade non-member to member
-    Route::get('participants/{participant}/upgrade-to-member', [ParticipantController::class, 'upgradeToMember'])
-        ->name('participants.upgrade-to-member');
-    
-    Route::get('participants/export/csv', [ParticipantController::class, 'export'])
-        ->name('participants.export');
-    
-    Route::get('participants/search', [ParticipantController::class, 'search'])
-        ->name('participants.search');
-    
-    // Participant Export PDF (Admin Only)
-    Route::get('participants/{participant}/export-pdf', [ParticipantController::class, 'exportPdf'])
-        ->name('participants.export-pdf');
-    
-    Route::get('participants/export/all/pdf', [ParticipantController::class, 'exportAllPdf'])
-        ->name('participants.export-all-pdf');
-
 });

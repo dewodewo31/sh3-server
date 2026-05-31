@@ -49,12 +49,12 @@
                     <div>
                         <label class="block text-gray-300 mb-2 font-semibold">Tier *</label>
                         <select name="tier" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500" required>
-                            <option value="">Pilih Tier</option>
-                            <option value="platinum" {{ old('tier') == 'platinum' ? 'selected' : '' }}>Platinum</option>
-                            <option value="gold" {{ old('tier') == 'gold' ? 'selected' : '' }}>Gold</option>
-                            <option value="silver" {{ old('tier') == 'silver' ? 'selected' : '' }}>Silver</option>
-                            <option value="bronze" {{ old('tier') == 'bronze' ? 'selected' : '' }}>Bronze</option>
-                            <option value="partner" {{ old('tier') == 'partner' ? 'selected' : '' }}>Partner</option>
+                            <option class="text-black" value="">Pilih Tier</option>
+                            <option class="text-black" value="platinum" {{ old('tier') == 'platinum' ? 'selected' : '' }}>Platinum</option>
+                            <option class="text-black" value="gold" {{ old('tier') == 'gold' ? 'selected' : '' }}>Gold</option>
+                            <option class="text-black" value="silver" {{ old('tier') == 'silver' ? 'selected' : '' }}>Silver</option>
+                            <option class="text-black" value="bronze" {{ old('tier') == 'bronze' ? 'selected' : '' }}>Bronze</option>
+                            <option class="text-black" value="partner" {{ old('tier') == 'partner' ? 'selected' : '' }}>Partner</option>
                         </select>
                         @error('tier')
                             <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
