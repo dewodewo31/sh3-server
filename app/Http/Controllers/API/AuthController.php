@@ -131,12 +131,6 @@ class AuthController extends Controller
 
         $participant = Participant::create($data);
         
-        // Non-member tetap hash_id = 0, member auto-generate
-        if ($participantType === 'non_member') {
-            $participant->hash_id = '0000';
-            $participant->save();
-        }
-        
         $token = $participant->createToken('auth_token')->plainTextToken;
 
         return response()->json([
