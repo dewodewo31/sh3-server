@@ -77,17 +77,35 @@ class EventApiController extends Controller
             // Ambil tier dari pivot (relasi many-to-many)
             $tier = $sponsor->pivot->tier ?? $sponsor->tier;
             
+            // Format sponsor data dengan full URL untuk logo
+            $formattedSponsor = [
+                'id' => $sponsor->id,
+                'name' => $sponsor->name,
+                'slug' => $sponsor->slug,
+                'logo_url' => $sponsor->logo ? asset('storage/' . $sponsor->logo) : null, // ← PERBAIKAN: full URL
+                'website' => $sponsor->website,
+                'email' => $sponsor->email,
+                'phone' => $sponsor->phone,
+                'description' => $sponsor->description,
+                'tier' => $sponsor->tier,
+                'sort_order' => $sponsor->sort_order,
+                'is_active' => $sponsor->is_active,
+                'created_at' => $sponsor->created_at,
+                'updated_at' => $sponsor->updated_at,
+                'pivot' => $sponsor->pivot
+            ];
+            
             // Tambahkan ke array sesuai tier
             if ($tier == 'platinum') {
-                $sponsors['platinum']->push($sponsor);
+                $sponsors['platinum']->push($formattedSponsor);
             } elseif ($tier == 'gold') {
-                $sponsors['gold']->push($sponsor);
+                $sponsors['gold']->push($formattedSponsor);
             } elseif ($tier == 'silver') {
-                $sponsors['silver']->push($sponsor);
+                $sponsors['silver']->push($formattedSponsor);
             } elseif ($tier == 'bronze') {
-                $sponsors['bronze']->push($sponsor);
+                $sponsors['bronze']->push($formattedSponsor);
             } else {
-                $sponsors['partner']->push($sponsor);
+                $sponsors['partner']->push($formattedSponsor);
             }
         }
         
