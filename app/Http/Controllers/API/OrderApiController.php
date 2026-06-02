@@ -9,8 +9,9 @@ use App\Models\Event;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Participant;
-use BaconQrCode\Encoder\QrCode;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 
 class OrderApiController extends Controller
@@ -61,14 +62,14 @@ class OrderApiController extends Controller
             
             if ($attendance) {
                 $qrCodeUrl = route('attendance.scan', $attendance->qr_code);
-                $qrCodeBase64 = 'data:image/png;base64,' . base64_encode(
-                    QrCode::format('png')->size(300)->generate($qrCodeUrl)
+                $qrCodeSvg = base64_encode(
+                    QrCode::format('svg')->size(300)->generate($qrCodeUrl)
                 );
                 
                 $responseData['attendance'] = [
                     'id' => $attendance->id,
                     'qr_code' => $attendance->qr_code,
-                    'qr_code_image' => $qrCodeBase64,
+                    'qr_code_image' => $qrCodeSvg,
                     'attendance_status' => $attendance->status,
                 ];
             }
@@ -112,8 +113,8 @@ class OrderApiController extends Controller
 
         // Generate QR code image
         $qrCodeUrl = route('attendance.scan', $attendance->qr_code);
-        $qrCodeBase64 = 'data:image/png;base64,' . base64_encode(
-            QrCode::format('png')->size(300)->generate($qrCodeUrl)
+        $qrCodeSvg = base64_encode(
+            QrCode::format('svg')->size(300)->generate($qrCodeUrl)
         );
 
         return response()->json([
@@ -124,7 +125,7 @@ class OrderApiController extends Controller
                 'attendance' => [
                     'id' => $attendance->id,
                     'qr_code' => $attendance->qr_code,
-                    'qr_code_image' => $qrCodeBase64,
+                    'qr_code_image' => $qrCodeSvg,
                     'attendance_status' => $attendance->status,
                 ]
             ]
