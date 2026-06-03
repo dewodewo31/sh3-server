@@ -36,9 +36,14 @@ class MerchandiseApiController extends Controller
         
         $merchandise = $query->paginate($request->per_page ?? 15);
         
+        // Format data dengan full URL untuk image
+        $formattedData = collect($merchandise->items())->map(function($item) {
+            return $this->formatMerchandise($item);
+        });
+        
         return response()->json([
             'success' => true,
-            'data' => $merchandise->items(),
+            'data' => $formattedData,
             'meta' => [
                 'current_page' => $merchandise->currentPage(),
                 'last_page' => $merchandise->lastPage(),
@@ -58,7 +63,7 @@ class MerchandiseApiController extends Controller
         
         return response()->json([
             'success' => true,
-            'data' => $merchandise
+            'data' => $this->formatMerchandise($merchandise)
         ]);
     }
     
@@ -138,16 +143,27 @@ class MerchandiseApiController extends Controller
         // Reduce stock
         $merchandise->reduceStock($request->quantity);
         
+        // Format response dengan merchandise detail
+        $orderData = [
+            'order_id' => $order->id,
+            'invoice_number' => $order->invoice_number,
+            'merchandise' => $this->formatMerchandise($merchandise),
+            'quantity' => $order->quantity,
+            'size' => $order->size,
+            'color' => $order->color,
+            'unit_price' => $order->unit_price,
+            'total_price' => $order->total_price,
+            'status' => $order->status,
+            'shipping_address' => $order->shipping_address,
+            'shipping_phone' => $order->shipping_phone,
+            'created_at' => $order->created_at,
+            'payment_instructions' => 'Please transfer to BCA 1234567890 a.n SH3 Event'
+        ];
+        
         return response()->json([
             'success' => true,
             'message' => 'Order created successfully',
-            'data' => [
-                'order_id' => $order->id,
-                'invoice_number' => $order->invoice_number,
-                'total_price' => $order->total_price,
-                'status' => $order->status,
-                'payment_instructions' => 'Please transfer to BCA 1234567890 a.n SH3 Event'
-            ]
+            'data' => $orderData
         ], 201);
     }
     
@@ -164,9 +180,19 @@ class MerchandiseApiController extends Controller
             ->latest()
             ->paginate(15);
         
+        // Format data dengan full URL untuk image merchandise
+        $formattedOrders = $orders->items();
+        foreach ($formattedOrders as $order) {
+            if ($order->merchandise) {
+                $order->merchandise->image_url = $order->merchandise->image 
+                    ? asset('storage/' . $order->merchandise->image) 
+                    : null;
+            }
+        }
+        
         return response()->json([
             'success' => true,
-            'data' => $orders->items(),
+            'data' => $formattedOrders,
             'meta' => [
                 'current_page' => $orders->currentPage(),
                 'last_page' => $orders->lastPage(),
@@ -193,6 +219,13 @@ class MerchandiseApiController extends Controller
                 'success' => false,
                 'message' => 'Order not found'
             ], 404);
+        }
+        
+        // Format merchandise image URL
+        if ($order->merchandise) {
+            $order->merchandise->image_url = $order->merchandise->image 
+                ? asset('storage/' . $order->merchandise->image) 
+                : null;
         }
         
         return response()->json([
@@ -239,5 +272,31 @@ class MerchandiseApiController extends Controller
             'success' => true,
             'message' => 'Order cancelled successfully'
         ]);
+    }
+    
+    // ==================== PRIVATE METHODS ====================
+    
+    /**
+     * Format merchandise data dengan full URL untuk image
+     */
+    private function formatMerchandise($merchandise)
+    {
+        return [
+            'id' => $merchandise->id,
+            'name' => $merchandise->name,
+            'slug' => $merchandise->slug,
+            'description' => $merchandise->description,
+            'image_url' => $merchandise->image ? asset('storage/' . $merchandise->image) : null,
+            'price' => $merchandise->price,
+            'price_formatted' => 'Rp ' . number_format($merchandise->price, 0, ',', '.'),
+            'stock' => $merchandise->stock,
+            'category' => $merchandise->category,
+            'sizes' => $merchandise->sizes ?? [],
+            'colors' => $merchandise->colors ?? [],
+            'is_active' => $merchandise->is_active,
+            'sold_count' => $merchandise->sold_count,
+            'created_at' => $merchandise->created_at,
+            'updated_at' => $merchandise->updated_at,
+        ];
     }
 }
