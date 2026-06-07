@@ -29,6 +29,15 @@
             </svg>
             <span class="text-sm">Dashboard</span>
         </a>
+        
+        <!-- Categories -->
+        <a href="{{ route('categories.index') }}"
+           class="flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('categories.*') ? 'bg-green-500/20 text-green-300' : '' }}">
+            <svg class="w-5 h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z"/>
+            </svg>
+            <span>Categories</span>
+        </a>
 
         <!-- Products Dropdown -->
         <div x-data="{ open: {{ request()->routeIs('events.*') || request()->routeIs('merchandise.index') ? 'true' : 'false' }} }" class="relative">
