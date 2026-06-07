@@ -4,6 +4,21 @@
 @section('page-title', 'Merchandise Order Details')
 @section('page-description', 'View complete merchandise order information')
 
+@push('styles')
+<style>
+    .proof-image {
+        transition: transform 0.2s ease;
+        cursor: pointer;
+    }
+    .proof-image:hover {
+        transform: scale(1.05);
+    }
+    .modal-backdrop {
+        backdrop-filter: blur(5px);
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="mb-6">
     <div class="flex justify-between items-center flex-wrap gap-4">
@@ -33,6 +48,12 @@
 @if(session('success'))
     <div class="bg-green-500/20 border border-green-500 text-green-300 px-4 py-3 rounded-lg mb-4">
         {{ session('success') }}
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="bg-red-500/20 border border-red-500 text-red-300 px-4 py-3 rounded-lg mb-4">
+        {{ session('error') }}
     </div>
 @endif
 
@@ -187,6 +208,103 @@
     
     <!-- Action Sidebar -->
     <div class="space-y-6">
+        <!-- ========== PAYMENT PROOF SECTION ========== -->
+        <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
+            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Bukti Pembayaran
+            </h3>
+            
+            @if($order->payment_proof)
+                <div class="space-y-3">
+                    <!-- Preview Gambar -->
+                    <div class="bg-black/30 rounded-lg p-3 text-center">
+                        <img src="{{ Storage::url($order->payment_proof) }}" 
+                             alt="Payment Proof"
+                             class="proof-image max-w-full max-h-48 mx-auto rounded-lg cursor-pointer object-contain"
+                             onclick="openProofModal('{{ Storage::url($order->payment_proof) }}')">
+                    </div>
+                    
+                    <!-- Payment Details -->
+                    <div class="bg-white/5 rounded-lg p-3 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400 text-sm">Payment Method:</span>
+                            <span class="text-white font-semibold capitalize">{{ $order->payment_method ?? '-' }}</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400 text-sm">Paid Amount:</span>
+                            <span class="text-green-400 font-bold">Rp {{ number_format($order->paid_amount ?? $order->total_price, 0, ',', '.') }}</span>
+                        </div>
+                        @if($order->payment_proof_uploaded_at)
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400 text-sm">Uploaded At:</span>
+                            <span class="text-white text-sm">{{ \Carbon\Carbon::parse($order->payment_proof_uploaded_at)->format('d M Y, H:i') }}</span>
+                        </div>
+                        @endif
+                        @if($order->verified_at)
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-400 text-sm">Verified At:</span>
+                            <span class="text-green-400 text-sm">{{ \Carbon\Carbon::parse($order->verified_at)->format('d M Y, H:i') }}</span>
+                        </div>
+                        @endif
+                    </div>
+                    
+                    <!-- Verification Status -->
+                    <div class="rounded-lg p-3 
+                        @if($order->verified_at) bg-green-500/10 border border-green-500/30
+                        @else bg-yellow-500/10 border border-yellow-500/30 @endif">
+                        <div class="flex items-center gap-2">
+                            @if($order->verified_at)
+                                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="text-green-400 text-sm font-semibold">Verified</span>
+                            @else
+                                <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                <span class="text-yellow-400 text-sm font-semibold">Waiting for Verification</span>
+                            @endif
+                        </div>
+                        @if($order->verification_notes)
+                            <p class="text-xs text-gray-400 mt-2">Notes: {{ $order->verification_notes }}</p>
+                        @endif
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex gap-2">
+                        <a href="{{ Storage::url($order->payment_proof) }}" 
+                           download
+                           class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg text-center text-sm transition">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                            Download
+                        </a>
+                        <button type="button" 
+                                onclick="openProofModal('{{ Storage::url($order->payment_proof) }}')"
+                                class="flex-1 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-center text-sm transition">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                            Fullscreen View
+                        </button>
+                    </div>
+                </div>
+            @else
+                <div class="text-center py-6">
+                    <svg class="w-12 h-12 mx-auto text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <p class="text-gray-400">No payment proof uploaded yet</p>
+                    <p class="text-xs text-gray-500 mt-1">Customer hasn't uploaded payment proof</p>
+                </div>
+            @endif
+        </div>
+        
         <!-- Status Update Card -->
         <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6 sticky top-6">
             <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
@@ -329,4 +447,65 @@
         @endif
     </div>
 </div>
+
+<!-- Modal for Fullscreen Image -->
+<div id="proofModal" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-4 modal-backdrop" onclick="closeProofModal()">
+    <div class="relative max-w-5xl w-full" onclick="event.stopPropagation()">
+        <img id="modalImage" src="" class="w-full h-auto rounded-lg">
+        <button onclick="closeProofModal()"
+                class="absolute top-4 right-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/70 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        <button onclick="downloadProof()"
+                class="absolute bottom-4 right-4 text-white bg-green-500/80 hover:bg-green-600 rounded-full p-2 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+        </button>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+    let currentProofUrl = '';
+    
+    function openProofModal(imageUrl) {
+        currentProofUrl = imageUrl;
+        const modal = document.getElementById('proofModal');
+        const modalImage = document.getElementById('modalImage');
+        modalImage.src = imageUrl;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeProofModal() {
+        const modal = document.getElementById('proofModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.body.style.overflow = 'auto';
+    }
+    
+    function downloadProof() {
+        if (currentProofUrl) {
+            // Create a temporary anchor element
+            const a = document.createElement('a');
+            a.href = currentProofUrl;
+            a.download = 'payment-proof-{{ $order->invoice_number }}.jpg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    }
+    
+    // Close modal with ESC key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeProofModal();
+        }
+    });
+</script>
+@endpush
 @endsection

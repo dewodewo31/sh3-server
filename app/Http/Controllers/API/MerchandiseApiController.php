@@ -299,4 +299,135 @@ class MerchandiseApiController extends Controller
             'updated_at' => $merchandise->updated_at,
         ];
     }
+    /**
+     * Upload payment proof for merchandise order
+     * POST /api/v1/merchandise/orders/{id}/upload-payment
+     */
+    public function uploadPaymentProof($id, Request $request)
+    {
+        $participant = $request->user();
+        
+        $order = MerchandiseOrder::where('participant_id', $participant->id)
+            ->where('id', $id)
+            ->first();
+        
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found'
+            ], 404);
+        }
+        
+        if ($order->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment cannot be uploaded for this order status'
+            ], 400);
+        }
+        
+        $validator = Validator::make($request->all(), [
+            'payment_proof' => 'required|image|mimes:jpeg,png,jpg,pdf|max:2048',
+            'payment_method' => 'required|string|in:bank_transfer,qris,ewallet',
+            'paid_amount' => 'required|numeric|min:0',
+            'bank_name' => 'nullable|string', // Optional: nama bank pengirim
+            'account_name' => 'nullable|string', // Optional: nama pemilik rekening
+            'account_number' => 'nullable|string', // Optional: nomor rekening
+            'notes' => 'nullable|string' // Optional: catatan tambahan
+        ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+        
+        // Upload payment proof
+        if ($request->hasFile('payment_proof')) {
+            // Delete old payment proof if exists
+            if ($order->payment_proof) {
+                Storage::disk('public')->delete($order->payment_proof);
+            }
+            
+            $path = $request->file('payment_proof')->store('merchandise-payments', 'public');
+            $order->payment_proof = $path;
+        }
+        
+        // Update order with payment info
+        $order->payment_proof_uploaded_at = now();
+        $order->paid_amount = $request->paid_amount;
+        $order->payment_method = $request->payment_method;
+        
+        // Save additional payment info as JSON in notes or separate column
+        $paymentDetails = [
+            'bank_name' => $request->bank_name,
+            'account_name' => $request->account_name,
+            'account_number' => $request->account_number,
+            'participant_notes' => $request->notes
+        ];
+        
+        // Merge with existing notes
+        $existingNotes = json_decode($order->notes ?? '{}', true);
+        $existingNotes['payment_details'] = $paymentDetails;
+        $order->notes = json_encode($existingNotes);
+        
+        $order->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Payment proof uploaded successfully. Waiting for verification.',
+            'data' => [
+                'order_id' => $order->id,
+                'status' => $order->status,
+                'payment_proof_url' => $order->payment_proof_url,
+                'uploaded_at' => $order->payment_proof_uploaded_at,
+                'payment_method' => $order->payment_method,
+                'paid_amount' => $order->paid_amount,
+                'verification_status' => 'pending'
+            ]
+        ]);
+    }
+    
+    /**
+     * Get payment status for order
+     * GET /api/v1/merchandise/orders/{id}/payment-status
+     */
+    public function getPaymentStatus($id, Request $request)
+    {
+        $participant = $request->user();
+        
+        $order = MerchandiseOrder::where('participant_id', $participant->id)
+            ->where('id', $id)
+            ->first();
+        
+        if (!$order) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order not found'
+            ], 404);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'order_id' => $order->id,
+                'invoice_number' => $order->invoice_number,
+                'status' => $order->status,
+                'total_price' => $order->total_price,
+                'paid_amount' => $order->paid_amount,
+                'remaining_amount' => $order->total_price - ($order->paid_amount ?? 0),
+                'payment_proof_uploaded' => !is_null($order->payment_proof),
+                'payment_proof_url' => $order->payment_proof_url,
+                'payment_method' => $order->payment_method,
+                'uploaded_at' => $order->payment_proof_uploaded_at,
+                'verified_at' => $order->verified_at,
+                'bank_account_info' => [
+                    'bank_name' => 'BCA',
+                    'account_number' => '1234567890',
+                    'account_name' => 'SH3 Event Organizer',
+                ]
+            ]
+        ]);
+    }
 }

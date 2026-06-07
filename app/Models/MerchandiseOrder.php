@@ -12,7 +12,6 @@ class MerchandiseOrder extends Model
     protected $fillable = [
         'participant_id',
         'merchandise_id',
-        'invoice_number',
         'quantity',
         'size',
         'color',
@@ -21,27 +20,30 @@ class MerchandiseOrder extends Model
         'status',
         'shipping_address',
         'shipping_phone',
-        'shipping_courier',
-        'tracking_number',
-        'paid_at',
-        'shipped_at',
-        'delivered_at',
-        'notes'
+        'notes',
+        'payment_proof',
+        'payment_proof_uploaded_at',
+        'paid_amount',
+        'payment_method',
+        'verified_at',
+        'verified_by',
+        'verification_notes'
     ];
 
     protected $casts = [
+        'created_at' => 'datetime',
+        'payment_proof_uploaded_at' => 'datetime',
+        'verified_at' => 'datetime',
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
-        'paid_at' => 'datetime',
-        'shipped_at' => 'datetime',
-        'delivered_at' => 'datetime'
+        'paid_amount' => 'decimal:2'
     ];
 
     protected static function booted()
     {
         static::creating(function ($order) {
             if (empty($order->invoice_number)) {
-                $order->invoice_number = 'INV-MERCH-' . date('Ymd') . '-' . strtoupper(Str::random(6));
+                $order->invoice_number = 'INV-MD-' . date('Ymd') . '-' . str_pad(static::count() + 1, 4, '0', STR_PAD_LEFT);
             }
         });
     }
@@ -57,18 +59,51 @@ class MerchandiseOrder extends Model
         return $this->belongsTo(Merchandise::class);
     }
 
-    // Status badge colors
+    public function verifier()
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    // Accessor for payment proof URL
+    public function getPaymentProofUrlAttribute()
+    {
+        return $this->payment_proof ? asset('storage/' . $this->payment_proof) : null;
+    }
+
+    // Check if payment is verified
+    public function isPaymentVerified()
+    {
+        return $this->status === 'paid' || $this->verified_at !== null;
+    }
+
+    // Get status badge
     public function getStatusBadgeAttribute()
     {
         return match($this->status) {
-            'pending' => 'bg-yellow-500/20 text-yellow-300',
-            'paid' => 'bg-blue-500/20 text-blue-300',
-            'processing' => 'bg-purple-500/20 text-purple-300',
-            'shipped' => 'bg-indigo-500/20 text-indigo-300',
-            'delivered' => 'bg-green-500/20 text-green-300',
-            'cancelled' => 'bg-red-500/20 text-red-300',
-            default => 'bg-gray-500/20 text-gray-300',
+            'pending' => '<span class="badge badge-warning">Menunggu Pembayaran</span>',
+            'paid' => '<span class="badge badge-success">Dibayar</span>',
+            'processing' => '<span class="badge badge-info">Diproses</span>',
+            'shipped' => '<span class="badge badge-primary">Dikirim</span>',
+            'delivered' => '<span class="badge badge-success">Terkirim</span>',
+            'cancelled' => '<span class="badge badge-danger">Dibatalkan</span>',
+            default => '<span class="badge badge-secondary">Unknown</span>',
         };
+    }
+
+    // Tambahkan scope di model MerchandiseOrder
+    public function scopePendingPayment($query)
+    {
+        return $query->where('status', 'pending')
+            ->whereNull('payment_proof')
+            ->orWhere(function($q) {
+                $q->whereNotNull('payment_proof')
+                ->whereNull('verified_at');
+            });
+    }
+
+    public function scopePaid($query)
+    {
+        return $query->where('status', 'paid');
     }
 
     // Get formatted total price

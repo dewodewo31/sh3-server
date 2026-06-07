@@ -74,6 +74,10 @@ Route::prefix('v1')->group(function () {
             Route::get('/my-orders', [MerchandiseApiController::class, 'myOrders']);
             Route::get('/orders/{id}', [MerchandiseApiController::class, 'orderDetail']);
             Route::post('/orders/{id}/cancel', [MerchandiseApiController::class, 'cancelOrder']);
+            
+            // ========== NEW: PAYMENT PROOF ROUTES ==========
+            Route::post('/orders/{id}/upload-payment', [MerchandiseApiController::class, 'uploadPaymentProof']);
+            Route::get('/orders/{id}/payment-status', [MerchandiseApiController::class, 'getPaymentStatus']);
         });
     });
     
