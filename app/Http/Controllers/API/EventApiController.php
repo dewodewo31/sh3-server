@@ -63,7 +63,7 @@ class EventApiController extends Controller
     {
         $event = Event::with(['category', 'creator', 'galleries', 'sponsors', 'merchandise'])
             ->findOrFail($id);
-        
+
         // Format sponsors by tier - PERBAIKAN: gunakan pivot.tier
         $sponsors = [
             'platinum' => collect(),
@@ -72,11 +72,11 @@ class EventApiController extends Controller
             'bronze' => collect(),
             'partner' => collect(),
         ];
-        
+
         foreach ($event->sponsors as $sponsor) {
             // Ambil tier dari pivot (relasi many-to-many)
             $tier = $sponsor->pivot->tier ?? $sponsor->tier;
-            
+
             // Format sponsor data dengan full URL untuk logo
             $formattedSponsor = [
                 'id' => $sponsor->id,
@@ -94,7 +94,7 @@ class EventApiController extends Controller
                 'updated_at' => $sponsor->updated_at,
                 'pivot' => $sponsor->pivot
             ];
-            
+
             // Tambahkan ke array sesuai tier
             if ($tier == 'platinum') {
                 $sponsors['platinum']->push($formattedSponsor);
@@ -108,7 +108,7 @@ class EventApiController extends Controller
                 $sponsors['partner']->push($formattedSponsor);
             }
         }
-        
+
         // Format merchandise for this event
         $merchandise = $this->formatEventMerchandise($event);
 
@@ -163,7 +163,7 @@ class EventApiController extends Controller
         $event = Event::with(['category', 'creator', 'galleries', 'sponsors', 'merchandise'])
             ->where('slug', $slug)
             ->firstOrFail();
-        
+
         $sponsors = [
             'platinum' => $event->sponsors->where('tier', 'platinum')->values(),
             'gold' => $event->sponsors->where('tier', 'gold')->values(),
@@ -215,7 +215,7 @@ class EventApiController extends Controller
     /**
      * Book an event (create order)
      */
-/**
+    /**
      * Book an event (create order)
      */
     public function book(Request $request, $id)
@@ -231,7 +231,7 @@ class EventApiController extends Controller
         if ($existingOrder) {
             // Jika sudah ada order, cek attendance
             $attendance = Attendance::where('order_id', $existingOrder->id)->first();
-            
+
             if ($attendance) {
                 // Generate ulang QR code jika perlu
                 $qrCodeUrl = $attendance->qr_code;
@@ -240,7 +240,7 @@ class EventApiController extends Controller
                         ->size(300)
                         ->generate($qrCodeUrl)
                 );
-                
+
                 return response()->json([
                     'success' => false,
                     'message' => 'You have already booked this event',
@@ -258,7 +258,7 @@ class EventApiController extends Controller
                     ]
                 ], 400);
             }
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'You have already booked this event'
@@ -322,7 +322,7 @@ class EventApiController extends Controller
             ]
         ], 201);
     }
-    
+
 
     /**
      * Get my booked events
@@ -330,13 +330,13 @@ class EventApiController extends Controller
     public function myEvents(Request $request)
     {
         $participant = $request->user();
-        
+
         $orders = Order::with(['event'])
             ->where('participant_id', $participant->id)
             ->latest()
             ->paginate(15);
 
-        $events = $orders->map(function($order) {
+        $events = $orders->map(function ($order) {
             return $this->formatEvent($order->event, $order);
         });
 
@@ -377,7 +377,7 @@ class EventApiController extends Controller
             ->where('event_id', $event->id)
             ->whereIn('status', ['paid', 'free'])
             ->get()
-            ->map(function($order) {
+            ->map(function ($order) {
                 return [
                     'id' => $order->participant->id,
                     'hash_id' => $order->participant->hash_id,
@@ -410,7 +410,7 @@ class EventApiController extends Controller
     public function participantCount($id)
     {
         $event = Event::findOrFail($id);
-        
+
         $count = Order::where('event_id', $event->id)
             ->whereIn('status', ['paid', 'free'])
             ->count();
@@ -431,13 +431,26 @@ class EventApiController extends Controller
     public function getSponsors(Request $request)
     {
         $query = Sponsor::with('events')->active();
-        
+
         if ($request->has('tier') && $request->tier != '') {
             $query->where('tier', $request->tier);
         }
-        
-        $sponsors = $query->orderBy('sort_order')->get();
-        
+
+        $sponsors = $query->orderBy('sort_order')->get()->map(function ($sponsor) {
+            return [
+                'id' => $sponsor->id,
+                'name' => $sponsor->name,
+                'slug' => $sponsor->slug,
+                'logo_url' => $sponsor->logo ? asset('storage/' . $sponsor->logo) : null, // ← ini
+                'website' => $sponsor->website,
+                'tier' => $sponsor->tier,
+                'sort_order' => $sponsor->sort_order,
+                'is_active' => $sponsor->is_active,
+            ];
+        });
+
+
+
         // Group by tier
         $grouped = [
             'platinum' => $sponsors->where('tier', 'platinum')->values(),
@@ -446,7 +459,7 @@ class EventApiController extends Controller
             'bronze' => $sponsors->where('tier', 'bronze')->values(),
             'partner' => $sponsors->where('tier', 'partner')->values(),
         ];
-        
+
         return response()->json([
             'success' => true,
             'data' => $grouped
@@ -459,7 +472,7 @@ class EventApiController extends Controller
     public function eventMerchandise($id)
     {
         $event = Event::findOrFail($id);
-        
+
         $merchandise = $this->formatEventMerchandise($event);
 
         return response()->json([
@@ -478,7 +491,7 @@ class EventApiController extends Controller
     public function eventMerchandiseDetail($eventId, $merchandiseId)
     {
         $event = Event::findOrFail($eventId);
-        
+
         $merchandise = $event->merchandise()
             ->where('merchandise.id', $merchandiseId)
             ->firstOrFail();
@@ -495,7 +508,7 @@ class EventApiController extends Controller
 
     private function formatEvents($events)
     {
-        return collect($events)->map(function($event) {
+        return collect($events)->map(function ($event) {
             return $this->formatEvent($event);
         });
     }
@@ -503,7 +516,7 @@ class EventApiController extends Controller
     private function formatEvent($event, $order = null)
     {
         $registeredCount = $event->orders()->count();
-        
+
         return [
             'id' => $event->id,
             'title' => $event->title,
@@ -558,11 +571,11 @@ class EventApiController extends Controller
             return [];
         }
 
-        $merchandise = $event->merchandise->filter(function($item) {
+        $merchandise = $event->merchandise->filter(function ($item) {
             return $item->pivot->is_available ?? true;
         });
 
-        return $merchandise->map(function($item) use ($event) {
+        return $merchandise->map(function ($item) use ($event) {
             return $this->formatSingleMerchandise($event, $item);
         })->values();
     }
@@ -585,7 +598,7 @@ class EventApiController extends Controller
             'category' => $merchandise->category,
             'sizes' => $merchandise->sizes ?? [],
             'colors' => $merchandise->colors ?? [],
-            
+
             // Pricing
             'price' => $merchandise->price,
             'price_formatted' => 'Rp ' . number_format($merchandise->price, 0, ',', '.'),
@@ -594,12 +607,12 @@ class EventApiController extends Controller
             'has_discount' => $hasDiscount,
             'discount_amount' => $hasDiscount ? $merchandise->price - $eventPrice : 0,
             'discount_percentage' => $hasDiscount ? round((($merchandise->price - $eventPrice) / $merchandise->price) * 100) : 0,
-            
+
             // Stock
             'stock' => $eventStock,
             'is_in_stock' => $eventStock > 0,
             'stock_status' => $eventStock > 10 ? 'available' : ($eventStock > 0 ? 'limited' : 'sold_out'),
-            
+
             // Pivot data
             'event_specific' => [
                 'discount_price' => $merchandise->pivot->discount_price,
