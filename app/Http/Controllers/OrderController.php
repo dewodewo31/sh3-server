@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Order;
 use App\Services\OrderService\OrderServiceInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -36,7 +37,7 @@ class OrderController extends Controller
      */
     public function show($id)
     {
-        if (!$this->orderService->authorizeOrder($id)) {
+        if (!$this->authorizeOrder($id)) {
             abort(403, 'Tidak diizinkan');
         }
         
@@ -46,12 +47,12 @@ class OrderController extends Controller
     }
 
     /**
-     * Verify payment (Admin/Organizer)
+     * Verify payment (Admin/Organizer/Bendahara)
      */
     public function verifyPayment(Request $request, $id)
     {
-        if (!$this->orderService->authorizeOrder($id)) {
-            abort(403, 'Tidak diizinkan');
+        if (!$this->canVerifyPayment()) {
+            abort(403, 'Tidak diizinkan - Hanya admin, organizer, atau bendahara yang bisa verifikasi');
         }
         
         $request->validate([
@@ -88,7 +89,7 @@ class OrderController extends Controller
      */
     public function destroy($id)
     {
-        if (Auth::user()->role !== 'admin') {
+        if (!$this->isAdmin()) {
             abort(403, 'Only admin can delete orders');
         }
         
@@ -99,11 +100,15 @@ class OrderController extends Controller
     }
     
     /**
-     * Cancel order (Admin/Organizer)
+     * Cancel order (Admin/Organizer/Bendahara)
      */
     public function cancel($id)
     {
-        if (!$this->orderService->authorizeOrder($id)) {
+        if (!$this->canCancelOrder()) {
+            abort(403, 'Tidak diizinkan - Hanya admin, organizer, atau bendahara yang bisa membatalkan order');
+        }
+        
+        if (!$this->authorizeOrder($id)) {
             abort(403, 'Tidak diizinkan');
         }
         
@@ -176,7 +181,7 @@ class OrderController extends Controller
      */
     public function exportInvoicePdf($id)
     {
-        if (!$this->orderService->authorizeOrder($id)) {
+        if (!$this->authorizeOrder($id)) {
             abort(403, 'Tidak diizinkan');
         }
         
@@ -189,5 +194,80 @@ class OrderController extends Controller
     public function exportAllPdf(Request $request)
     {
         return $this->orderService->exportOrdersToPdf($request);
+    }
+
+    // ==================== AUTHORIZATION HELPERS ====================
+
+    /**
+     * Check if user is admin (including all admin roles)
+     */
+    private function isAdmin(): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+        
+        $adminRoles = ['admin', 'admin_full_access', 'admin_laman', 'admin_member', 'admin_bnh'];
+        return in_array($user->role, $adminRoles);
+    }
+
+    /**
+     * Check if user can verify payment
+     */
+    private function canVerifyPayment(): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+        
+        $allowedRoles = ['admin', 'admin_full_access', 'admin_laman', 'organizer', 'bendahara'];
+        return in_array($user->role, $allowedRoles);
+    }
+
+    /**
+     * Check if user can cancel order
+     */
+    private function canCancelOrder(): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+        
+        $allowedRoles = ['admin', 'admin_full_access', 'admin_laman', 'organizer', 'bendahara'];
+        return in_array($user->role, $allowedRoles);
+    }
+
+    /**
+     * Authorize order access
+     */
+    private function authorizeOrder($id): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+        
+        // Admin roles have full access
+        if ($this->isAdmin()) return true;
+        
+        // Organizer can only see orders for their events
+        if ($user->role === 'organizer') {
+            $order = $this->orderService->getOrderById($id);
+            if ($order && $order->event) {
+                return $order->event->created_by === $user->id;
+            }
+            return false;
+        }
+        
+        // Bendahara can see all orders
+        if ($user->role === 'bendahara') {
+            return true;
+        }
+        
+        // Participant can only see their own orders
+        if ($user->role === 'participant') {
+            $order = $this->orderService->getOrderById($id);
+            if ($order) {
+                return $order->participant_id === $user->id;
+            }
+            return false;
+        }
+        
+        return false;
     }
 }

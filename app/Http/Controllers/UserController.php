@@ -11,6 +11,38 @@ use Illuminate\Support\Facades\Validator;
 class UserController extends Controller
 {
     /**
+     * Check if current user has admin access (including mapped roles)
+     */
+    private function isAdmin(): bool
+    {
+        $userRole = Auth::user()->role;
+        
+        // Role mappings (same as middleware)
+        $adminRoles = ['admin', 'admin_full_access', 'admin_laman', 'admin_member', 'admin_bnh'];
+        
+        return in_array($userRole, $adminRoles);
+    }
+
+    /**
+     * Get all valid roles
+     */
+    private function getValidRoles(): array
+    {
+        return [
+            'admin',
+            'admin_full_access',
+            'admin_laman',
+            'admin_member',
+            'admin_bnh',
+            'organizer',
+            'bendahara',
+            'sponsor',
+            'merchandise',
+            'participant'
+        ];
+    }
+
+    /**
      * Show login page
      */
     public function login()
@@ -33,7 +65,7 @@ class UserController extends Controller
 
             $user = Auth::user();
 
-            if ($user->role === 'admin' || $user->role === 'organizer') {
+            if ($this->isAdmin() || $user->role === 'organizer') {
                 return redirect()->route('dashboard.index');
             }
 
@@ -64,19 +96,29 @@ class UserController extends Controller
      */
     public function index()
     {
-        // Check if user is admin
-        if (Auth::user()->role !== 'admin') {
+        if (!$this->isAdmin()) {
             abort(403, 'Unauthorized access');
         }
 
         $users = User::latest()->paginate(15);
         $totalUsers = User::count();
-        $totalAdmins = User::where('role', 'admin')->count();
+        $totalAdmins = User::whereIn('role', ['admin', 'admin_full_access', 'admin_laman', 'admin_member', 'admin_bnh'])->count();
         $totalOrganizers = User::where('role', 'organizer')->count();
+        $totalBendahara = User::where('role', 'bendahara')->count();
+        $totalSponsor = User::where('role', 'sponsor')->count();
+        $totalMerchandise = User::where('role', 'merchandise')->count();
         $totalParticipants = User::where('role', 'participant')->count();
 
-        return view('users.index', compact('users', 'totalUsers', 'totalAdmins', 
-                                           'totalOrganizers', 'totalParticipants'));
+        return view('users.index', compact(
+            'users', 
+            'totalUsers', 
+            'totalAdmins', 
+            'totalOrganizers',
+            'totalBendahara',
+            'totalSponsor',
+            'totalMerchandise',
+            'totalParticipants'
+        ));
     }
 
     /**
@@ -84,11 +126,11 @@ class UserController extends Controller
      */
     public function create()
     {
-        if (Auth::user()->role !== 'admin') {
+        if (!$this->isAdmin()) {
             abort(403, 'Unauthorized access');
         }
 
-        $roles = ['admin', 'organizer', 'participant'];
+        $roles = $this->getValidRoles();
         
         return view('users.create', compact('roles'));
     }
@@ -98,15 +140,17 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        if (Auth::user()->role !== 'admin') {
+        if (!$this->isAdmin()) {
             abort(403, 'Unauthorized access');
         }
+
+        $validRoles = $this->getValidRoles();
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6|confirmed',
-            'role' => 'required|in:admin,organizer,participant'
+            'role' => 'required|in:' . implode(',', $validRoles)
         ]);
 
         if ($validator->fails()) {
@@ -131,11 +175,9 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        if (Auth::user()->role !== 'admin') {
+        if (!$this->isAdmin()) {
             abort(403, 'Unauthorized access');
         }
-
-        $user->load(['orders', 'eventsCreated', 'uploadedGalleries']);
         
         return view('users.show', compact('user'));
     }
@@ -145,11 +187,11 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        if (Auth::user()->role !== 'admin') {
+        if (!$this->isAdmin()) {
             abort(403, 'Unauthorized access');
         }
 
-        $roles = ['admin', 'organizer', 'participant'];
+        $roles = $this->getValidRoles();
         
         return view('users.edit', compact('user', 'roles'));
     }
@@ -159,14 +201,16 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
-        if (Auth::user()->role !== 'admin') {
+        if (!$this->isAdmin()) {
             abort(403, 'Unauthorized access');
         }
+
+        $validRoles = $this->getValidRoles();
 
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
-            'role' => 'required|in:admin,organizer,participant'
+            'role' => 'required|in:' . implode(',', $validRoles)
         ];
 
         if ($request->filled('password')) {
@@ -202,7 +246,7 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        if (Auth::user()->role !== 'admin') {
+        if (!$this->isAdmin()) {
             abort(403, 'Unauthorized access');
         }
 
@@ -216,5 +260,40 @@ class UserController extends Controller
 
         return redirect()->route('users.index')
             ->with('success', 'User berhasil dihapus');
+    }
+
+    /**
+     * Fix all users with wrong roles
+     * Run this once: php artisan tinker -> app(UserController::class)->fixUserRoles()
+     */
+    public function fixUserRoles()
+    {
+        $roleMapping = [
+            'admin.full@sh3.com' => 'admin_full_access',
+            'admin.laman@sh3.com' => 'admin_laman',
+            'admin.member@sh3.com' => 'admin_member',
+            'admin.bnh@sh3.com' => 'admin_bnh',
+            'organizer@sh3.com' => 'organizer',
+            'bendahara@sh3.com' => 'bendahara',
+            'sponsor@sh3.com' => 'sponsor',
+            'merchandise@sh3.com' => 'merchandise',
+            'participant@sh3.com' => 'participant',
+        ];
+
+        $updated = [];
+        foreach ($roleMapping as $email => $role) {
+            $user = User::where('email', $email)->first();
+            if ($user && $user->role !== $role) {
+                $user->role = $role;
+                $user->save();
+                $updated[] = $email . ' -> ' . $role;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Roles updated',
+            'updated' => $updated
+        ]);
     }
 }

@@ -16,23 +16,44 @@ class SponsorController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Sponsor::query();
-        
-        if ($request->has('tier') && $request->tier != '') {
+        $query = Sponsor::with('events');
+
+        // Filter by year
+        if ($request->filled('year')) {
+            $query->where('year', $request->year);
+        }
+
+        // Filter by tier
+        if ($request->filled('tier')) {
             $query->where('tier', $request->tier);
         }
-        
-        if ($request->has('search') && $request->search != '') {
+
+        // Search
+        if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
-        
-        $sponsors = $query->orderBy('sort_order')->latest()->paginate(15);
-        
+
+        $sponsors = $query->orderBy('sort_order')->paginate(15);
+
+        // Stats
         $totalSponsors = Sponsor::count();
         $activeSponsors = Sponsor::where('is_active', true)->count();
-        $tiers = Sponsor::getAvailableTiers();
-        
-        return view('sponsors.index', compact('sponsors', 'totalSponsors', 'activeSponsors', 'tiers'));
+        $currentYear = date('Y');
+        $currentYearSponsors = Sponsor::where('year', $currentYear)->count();
+
+        // Available years for filter dropdown
+        $availableYears = Sponsor::whereNotNull('year')
+            ->distinct()
+            ->orderBy('year', 'desc')
+            ->pluck('year');
+
+        return view('sponsors.index', compact(
+            'sponsors', 
+            'totalSponsors', 
+            'activeSponsors', 
+            'currentYearSponsors',
+            'availableYears'
+        ));
     }
 
     /**
@@ -58,6 +79,7 @@ class SponsorController extends Controller
             'email' => 'nullable|email',
             'phone' => 'nullable|string|max:20',
             'description' => 'nullable|string',
+            'year' => 'nullable|string|max:4',
             'tier' => 'required|in:platinum,gold,silver,bronze,partner',
             'sort_order' => 'nullable|integer',
             'is_active' => 'boolean',
@@ -148,6 +170,7 @@ class SponsorController extends Controller
             'email' => 'nullable|email',
             'phone' => 'nullable|string|max:20',
             'description' => 'nullable|string',
+            'year' => 'nullable|string|max:4',
             'tier' => 'required|in:platinum,gold,silver,bronze,partner',
             'sort_order' => 'nullable|integer',
             'is_active' => 'boolean',
@@ -238,4 +261,5 @@ class SponsorController extends Controller
             'data' => $data
         ]);
     }
+    
 }

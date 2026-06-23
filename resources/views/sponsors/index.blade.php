@@ -62,9 +62,16 @@
 </div>
 @endif
 
-<!-- Filters -->
+<!-- FILTERS -->
 <div class="mb-6">
     <form method="GET" action="{{ route('sponsors.index') }}" class="flex flex-wrap gap-3">
+        <select name="year" class="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white">
+            <option value="">All Years</option>
+            @foreach($availableYears as $yr)
+                <option value="{{ $yr }}" {{ request('year') == $yr ? 'selected' : '' }}>{{ $yr }}</option>
+            @endforeach
+        </select>
+
         <select name="tier" class="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white">
             <option value="">All Tiers</option>
             <option value="platinum" {{ request('tier') == 'platinum' ? 'selected' : '' }}>Platinum</option>
@@ -82,7 +89,7 @@
             Filter
         </button>
         
-        @if(request()->hasAny(['tier', 'search']))
+        @if(request()->hasAny(['year', 'tier', 'search']))
         <a href="{{ route('sponsors.index') }}" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-lg transition">
             Reset
         </a>
@@ -90,11 +97,25 @@
     </form>
 </div>
 
-<!-- Sponsors Grid -->
+<!-- STATS — Tambah Year Stats -->
+<div class="bg-white/5 p-4 rounded-xl border border-white/10 hover:bg-white/10 transition">
+    <div class="flex items-center gap-2 mb-2">
+        <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <p class="text-gray-400 text-sm">Current Year</p>
+    </div>
+    <h3 class="text-2xl font-bold text-blue-400">{{ $currentYearSponsors }}</h3>
+</div>
+
+<!-- SPONSORS GRID -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     @forelse($sponsors as $sponsor)
+    
+    <!-- ✅ CARD STARTS HERE — INSIDE the loop -->
     <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 overflow-hidden hover:border-green-500/50 transition-all duration-300 group">
-        <!-- Sponsor Header -->
+        
+        <!-- ✅ SPONSOR HEADER — Now INSIDE the loop, $sponsor exists -->
         <div class="p-4 border-b border-white/10 bg-white/5">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -111,9 +132,16 @@
                         <h3 class="font-semibold text-white group-hover:text-green-400 transition">
                             {{ $sponsor->name }}
                         </h3>
-                        <span class="px-2 py-0.5 rounded-full text-xs {{ $sponsor->tier_badge }}">
-                            {{ ucfirst($sponsor->tier) }}
-                        </span>
+                        <div class="flex gap-2 mt-1">
+                            <span class="px-2 py-0.5 rounded-full text-xs {{ $sponsor->tier_badge }}">
+                                {{ ucfirst($sponsor->tier) }}
+                            </span>
+                            @if($sponsor->year)
+                            <span class="px-2 py-0.5 rounded-full text-xs bg-blue-500/20 text-blue-300">
+                                {{ $sponsor->year }}
+                            </span>
+                            @endif
+                        </div>
                     </div>
                 </div>
                 <div class="flex gap-1">
@@ -175,15 +203,13 @@
         <div class="p-4 border-t border-white/10 bg-white/5">
             <div class="flex justify-between items-center">
                 <div class="flex gap-2">
-                    <a href="{{ route('sponsors.show', $sponsor) }}" 
-                       class="text-blue-400 hover:text-blue-300 transition">
+                    <a href="{{ route('sponsors.show', $sponsor) }}" class="text-blue-400 hover:text-blue-300 transition">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                         </svg>
                     </a>
-                    <a href="{{ route('sponsors.edit', $sponsor) }}" 
-                       class="text-yellow-400 hover:text-yellow-300 transition">
+                    <a href="{{ route('sponsors.edit', $sponsor) }}" class="text-yellow-400 hover:text-yellow-300 transition">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                         </svg>
@@ -203,12 +229,12 @@
                         </button>
                     </form>
                 </div>
-                <div class="text-gray-500 text-xs">
-                    #{{ $sponsor->id }}
-                </div>
+                <div class="text-gray-500 text-xs">#{{ $sponsor->id }}</div>
             </div>
         </div>
     </div>
+    <!-- ✅ CARD ENDS HERE -->
+    
     @empty
     <div class="col-span-full">
         <div class="text-center py-12">

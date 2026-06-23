@@ -21,7 +21,41 @@
 
     <!-- Menu -->
     <nav class="flex-1 p-3 sm:p-4 space-y-1 overflow-y-auto">
-        <!-- Dashboard -->
+@php
+    $userRole = auth()->user()->role ?? 'guest';
+
+    $adminRoles = [
+        'admin',
+        'admin_full_access',
+        'admin_laman',
+        'admin_member',
+        'admin_bnh'
+    ];
+
+    $isAdmin = in_array($userRole, $adminRoles);
+
+    $isOrganizer = $userRole === 'organizer';
+    $isBendahara = $userRole === 'bendahara';
+    $isSponsor = $userRole === 'sponsor';
+    $isMerchandise = $userRole === 'merchandise';
+
+    $fullAccess = in_array($userRole, [
+        'admin',
+        'admin_full_access',
+        'admin_laman',
+        'admin_bnh'
+    ]);
+
+    $canManageProducts = $fullAccess || $isOrganizer || $isMerchandise;
+    $canManageOrders = $fullAccess || $isOrganizer || $isBendahara || $isMerchandise;
+    $canManagePayments = $fullAccess || $isOrganizer || $isBendahara;
+    $canManageSponsors = $fullAccess || $isSponsor;
+    $canManageParticipants = $fullAccess || $userRole === 'admin_member';
+    $canManageUsers = $fullAccess;
+    $canManageGallery = $fullAccess || $isOrganizer;
+@endphp 
+
+        <!-- Dashboard - All roles can see -->
         <a href="{{ route('dashboard.index') }}"
            class="flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('dashboard.index') ? 'bg-green-500/20 text-green-300' : '' }}">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -30,7 +64,8 @@
             <span class="text-sm">Dashboard</span>
         </a>
         
-        <!-- Categories -->
+        <!-- Categories - Only full access -->
+        @if($fullAccess)
         <a href="{{ route('categories.index') }}"
            class="flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('categories.*') ? 'bg-green-500/20 text-green-300' : '' }}">
             <svg class="w-5 h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -38,8 +73,10 @@
             </svg>
             <span>Categories</span>
         </a>
+        @endif
 
         <!-- Products Dropdown -->
+        @if($canManageProducts)
         <div x-data="{ open: {{ request()->routeIs('events.*') || request()->routeIs('merchandise.index') ? 'true' : 'false' }} }" class="relative">
             <button @click="open = !open" 
                     class="w-full flex items-center justify-between gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group">
@@ -63,6 +100,7 @@
                  x-transition:leave-end="opacity-0 transform -translate-y-2"
                  class="ml-6 sm:ml-9 mt-1 space-y-1">
                 
+                <!-- Events - visible to all product managers -->
                 <a href="{{ route('events.index') }}"
                    class="flex items-center gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group text-xs sm:text-sm {{ request()->routeIs('events.*') ? 'bg-green-500/20 text-green-300' : '' }}">
                     <svg class="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -71,7 +109,8 @@
                     <span>Events</span>
                 </a>
 
-                @if(auth()->user() && auth()->user()->role === 'admin')
+                <!-- Merchandise - visible to full access + merchandise role -->
+                @if($fullAccess || $isMerchandise)
                 <a href="{{ route('merchandise.index') }}"
                    class="flex items-center gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group text-xs sm:text-sm {{ request()->routeIs('merchandise.index') ? 'bg-green-500/20 text-green-300' : '' }}">
                     <svg class="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -82,8 +121,10 @@
                 @endif
             </div>
         </div>
+        @endif
 
         <!-- Orders Dropdown -->
+        @if($canManageOrders)
         <div x-data="{ open: {{ request()->routeIs('orders.*') || request()->routeIs('merchandise.orders*') ? 'true' : 'false' }} }" class="relative">
             <button @click="open = !open" 
                     class="w-full flex items-center justify-between gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group">
@@ -107,6 +148,7 @@
                  x-transition:leave-end="opacity-0 transform -translate-y-2"
                  class="ml-6 sm:ml-9 mt-1 space-y-1">
                 
+                <!-- Event Orders - visible to all order managers -->
                 <a href="{{ route('orders.index') }}"
                    class="flex items-center gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group text-xs sm:text-sm {{ request()->routeIs('orders.index') ? 'bg-green-500/20 text-green-300' : '' }}">
                     <svg class="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -115,7 +157,8 @@
                     <span>Event Orders</span>
                 </a>
 
-                @if(auth()->user() && auth()->user()->role === 'admin')
+                <!-- Merchandise Orders - visible to full access + merchandise role -->
+                @if($fullAccess || $isMerchandise)
                 <a href="{{ route('merchandise.orders') }}"
                    class="flex items-center gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group text-xs sm:text-sm {{ request()->routeIs('merchandise.orders*') ? 'bg-green-500/20 text-green-300' : '' }}">
                     <svg class="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -126,8 +169,10 @@
                 @endif
             </div>
         </div>
+        @endif
 
-        <!-- Payments -->
+        <!-- Payments - visible to full access + bendahara -->
+        @if($canManagePayments)
         <a href="{{ route('payments.index') }}"
            class="flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('payments.*') ? 'bg-green-500/20 text-green-300' : '' }}">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -135,8 +180,10 @@
             </svg>
             <span class="text-sm">Payments</span>
         </a>
+        @endif
 
-        <!-- Gallery -->
+        <!-- Gallery - visible to full access + admin BNH + organizer -->
+        @if($canManageGallery)
         <a href="{{ route('galleries.index') }}"
            class="flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('galleries.*') ? 'bg-green-500/20 text-green-300' : '' }}">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -144,9 +191,10 @@
             </svg>
             <span class="text-sm">Gallery</span>
         </a>
+        @endif
 
-        <!-- Sponsors Menu (Admin Only) -->
-        @if(auth()->user() && auth()->user()->role === 'admin')
+        <!-- Sponsors - visible to full access + sponsor role -->
+        @if($canManageSponsors)
         <a href="{{ route('sponsors.index') }}"
            class="flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('sponsors.*') ? 'bg-green-500/20 text-green-300' : '' }}">
             <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -156,32 +204,32 @@
         </a>
         @endif
 
-        <!-- Participants Menu (Admin Only) -->
-        @if(auth()->user() && auth()->user()->role === 'admin')
-            <div class="pt-3 sm:pt-4 mt-2">
-                <p class="text-xs text-gray-500 px-3 sm:px-4 mb-2 uppercase tracking-wider">Management</p>
-                
-                <a href="{{ route('participants.index') }}"
-                   class="flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('participants.*') ? 'bg-green-500/20 text-green-300' : '' }}">
-                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                    <span class="text-sm">Participants</span>
-                </a>
-            </div>
+        <!-- Participants Management -->
+        @if($canManageParticipants)
+        <div class="pt-3 sm:pt-4 mt-2">
+            <p class="text-xs text-gray-500 px-3 sm:px-4 mb-2 uppercase tracking-wider">Management</p>
+            
+            <a href="{{ route('participants.index') }}"
+               class="flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('participants.*') ? 'bg-green-500/20 text-green-300' : '' }}">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <span class="text-sm">Participants</span>
+            </a>
+        </div>
         @endif
 
-        <!-- Users Menu (Admin Only) -->
-        @if(auth()->user() && auth()->user()->role === 'admin')
-            <div>
-                <a href="{{ route('users.index') }}"
-                   class="flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('users.*') ? 'bg-green-500/20 text-green-300' : '' }}">
-                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
-                    </svg>
-                    <span class="text-sm">Users Management</span>
-                </a>
-            </div>
+        <!-- Users Management - only full access + admin laman -->
+        @if($canManageUsers)
+        <div>
+            <a href="{{ route('users.index') }}"
+               class="flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('users.*') ? 'bg-green-500/20 text-green-300' : '' }}">
+                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z"/>
+                </svg>
+                <span class="text-sm">Users Management</span>
+            </a>
+        </div>
         @endif
 
         <!-- Role Info -->
@@ -190,7 +238,7 @@
                 <svg class="w-3 h-3 sm:w-4 sm:h-4 text-green-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/>
                 </svg>
-                <span>Login as: <span class="text-green-400 font-semibold">{{ auth()->user()->role ?? 'Guest' }}</span></span>
+                <span>Login as: <span class="text-green-400 font-semibold">{{ $userRole }}</span></span>
             </div>
         </div>
 

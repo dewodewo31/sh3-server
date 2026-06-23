@@ -140,7 +140,15 @@
                     </div>
                 </div>
             </div>
-
+            <div class="mb-4">
+                <label class="block text-gray-300 mb-2">Year</label>
+                <input type="text" name="year" value="{{ old('year', $sponsor->year ?? '') }}" 
+                    placeholder="e.g. 2024" maxlength="4"
+                    class="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white w-full">
+                @error('year')
+                    <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+                @enderror
+            </div>
             <!-- Description -->
             <div class="mt-6">
                 <label class="block text-gray-300 mb-2 font-semibold">Deskripsi</label>

@@ -75,17 +75,28 @@
                        required>
             </div>
 
-            <div class="mb-6">
+            <div class="mb-4">
                 <label class="block text-gray-300 mb-2 font-semibold">Role *</label>
                 <select name="role" 
-                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-green-500 @error('role') border-red-500 @enderror"
+                        class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-black focus:outline-none focus:border-green-500" 
                         required>
-                    <option value="">Pilih Role</option>
-                    @foreach($roles as $role)
-                        <option value="{{ $role }}" {{ old('role') == $role ? 'selected' : '' }}>
-                            {{ ucfirst($role) }}
-                        </option>
-                    @endforeach
+                    <option value="" class="text-black">Pilih Role</option>
+                    <optgroup label="Admin Roles">
+                        <option class="text-black" value="admin" {{ old('role', $user->role ?? '') == 'admin' ? 'selected' : '' }} class="text-black">Admin (Legacy)</option>
+                        <option class="text-black" value="admin_full_access" {{ old('role', $user->role ?? '') == 'admin_full_access' ? 'selected' : '' }} class="text-black">Admin Full Access</option>
+                        <option class="text-black" value="admin_laman" {{ old('role', $user->role ?? '') == 'admin_laman' ? 'selected' : '' }} class="text-black">Admin Laman</option>
+                        <option class="text-black" value="admin_member" {{ old('role', $user->role ?? '') == 'admin_member' ? 'selected' : '' }} class="text-black">Admin Member</option>
+                        <option class="text-black" value="admin_bnh" {{ old('role', $user->role ?? '') == 'admin_bnh' ? 'selected' : '' }} class="text-black">Admin BNH</option>
+                    </optgroup>
+                    <optgroup label="Other Roles">
+                        <option class="text-black" value="organizer" {{ old('role', $user->role ?? '') == 'organizer' ? 'selected' : '' }} class="text-black">Organizer</option>
+                        <option class="text-black" value="bendahara" {{ old('role', $user->role ?? '') == 'bendahara' ? 'selected' : '' }} class="text-black">Bendahara</option>
+                        <option class="text-black" value="sponsor" {{ old('role', $user->role ?? '') == 'sponsor' ? 'selected' : '' }} class="text-black">Sponsor</option>
+                        <option class="text-black" value="merchandise" {{ old('role', $user->role ?? '') == 'merchandise' ? 'selected' : '' }} class="text-black">Merchandise</option>
+                    </optgroup>
+                    <optgroup label="Default">
+                        <option value="participant" {{ old('role', $user->role ?? '') == 'participant' ? 'selected' : '' }} class="text-black">Participant</option>
+                    </optgroup>
                 </select>
                 @error('role')
                     <p class="text-red-400 text-sm mt-1">{{ $message }}</p>

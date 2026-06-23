@@ -11,7 +11,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-gray-400 text-xs">Total Events</p>
-                <p class="text-xl font-bold text-blue-400">{{ number_format($totalEvents) }}</p>
+                <p class="text-xl font-bold text-blue-400">{{ number_format($totalEvents ?? 0) }}</p>
             </div>
             <div class="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
                 <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,7 +25,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-gray-400 text-xs">Total Participants</p>
-                <p class="text-xl font-bold text-green-400">{{ number_format($totalParticipants) }}</p>
+                <p class="text-xl font-bold text-green-400">{{ number_format($totalParticipants ?? 0) }}</p>
             </div>
             <div class="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
                 <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,7 +39,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-gray-400 text-xs">Total Orders</p>
-                <p class="text-xl font-bold text-purple-400">{{ number_format($totalOrders) }}</p>
+                <p class="text-xl font-bold text-purple-400">{{ number_format($totalOrders ?? 0) }}</p>
             </div>
             <div class="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
                 <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,7 +53,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-gray-400 text-xs">Total Revenue</p>
-                <p class="text-sm font-bold text-yellow-400">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</p>
+                <p class="text-sm font-bold text-yellow-400">Rp {{ number_format($totalRevenue ?? 0, 0, ',', '.') }}</p>
             </div>
             <div class="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center">
                 <svg class="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,18 +123,32 @@
             Top Events (Most Registered)
         </h3>
         
-        @foreach($topEvents as $index => $event)
-        <div class="flex justify-between items-center py-1 border-b border-white/10">
-            <div class="flex items-center gap-1.5">
-                <span class="text-base font-bold text-gray-500 w-5">#{{ $index + 1 }}</span>
-                <div>
-                    <p class="text-white text-xs">{{ Str::limit($event->title, 30) }}</p>
-                    <p class="text-xs text-gray-400">Quota: {{ number_format($event->quota) }}</p>
+        @php $topEvents = $topEvents ?? collect(); @endphp
+        @if($topEvents->count() > 0)
+            @foreach($topEvents as $index => $event)
+            <div class="flex justify-between items-center py-1 border-b border-white/10">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-base font-bold text-gray-500 w-5">#{{ $index + 1 }}</span>
+                    <div>
+                        <p class="text-white text-xs">{{ Str::limit($event['title'] ?? 'N/A', 30) }}</p>
+                        <p class="text-xs text-gray-400">Quota: {{ number_format($event['quota'] ?? 0) }}</p>
+                    </div>
                 </div>
+                <span class="text-green-400 font-semibold text-xs">{{ number_format($event['registered'] ?? 0) }} peserta</span>
             </div>
-            <span class="text-green-400 font-semibold text-xs">{{ number_format($event->registered) }} peserta</span>
-        </div>
-        @endforeach
+            @endforeach
+        @else
+            <div class="text-center py-6">
+                <svg class="w-12 h-12 mx-auto text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-gray-400 text-sm">Belum ada event</p>
+                <p class="text-xs text-gray-500">Buat event pertama Anda</p>
+                <a href="{{ route('events.create') }}" class="mt-2 inline-block text-green-400 hover:text-green-300 text-sm">
+                    + Buat Event
+                </a>
+            </div>
+        @endif
     </div>
 </div>
 
@@ -149,25 +163,36 @@
             Recent Orders
         </h3>
         
-        <div class="space-y-1">
-            @foreach($recentOrders as $order)
-            <div class="flex justify-between items-center py-1 border-b border-white/10">
-                <div>
-                    <p class="text-white text-xs">{{ Str::limit($order->participant_name, 25) }}</p>
-                    <p class="text-xs text-gray-400">{{ Str::limit($order->event_title, 30) }}</p>
+        @php $recentOrders = $recentOrders ?? collect(); @endphp
+        @if($recentOrders->count() > 0)
+            <div class="space-y-1">
+                @foreach($recentOrders as $order)
+                <div class="flex justify-between items-center py-1 border-b border-white/10">
+                    <div>
+                        <p class="text-white text-xs">{{ Str::limit($order['participant_name'] ?? 'N/A', 25) }}</p>
+                        <p class="text-xs text-gray-400">{{ Str::limit($order['event_title'] ?? 'N/A', 30) }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-green-400 font-semibold text-xs">Rp {{ number_format($order['total_price'] ?? 0, 0, ',', '.') }}</p>
+                        <span class="px-1.5 py-0.5 text-xs rounded-full 
+                            @if(($order['status'] ?? '') == 'pending') bg-yellow-500/20 text-yellow-300
+                            @elseif(($order['status'] ?? '') == 'paid') bg-green-500/20 text-green-300
+                            @else bg-red-500/20 text-red-300 @endif">
+                            {{ ucfirst($order['status'] ?? 'Unknown') }}
+                        </span>
+                    </div>
                 </div>
-                <div class="text-right">
-                    <p class="text-green-400 font-semibold text-xs">Rp {{ number_format($order->total_price, 0, ',', '.') }}</p>
-                    <span class="px-1.5 py-0.5 text-xs rounded-full 
-                        @if($order->status == 'pending') bg-yellow-500/20 text-yellow-300
-                        @elseif($order->status == 'paid') bg-green-500/20 text-green-300
-                        @else bg-red-500/20 text-red-300 @endif">
-                        {{ ucfirst($order->status) }}
-                    </span>
-                </div>
+                @endforeach
             </div>
-            @endforeach
-        </div>
+        @else
+            <div class="text-center py-6">
+                <svg class="w-12 h-12 mx-auto text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                </svg>
+                <p class="text-gray-400 text-sm">Belum ada order</p>
+                <p class="text-xs text-gray-500">Order akan muncul di sini</p>
+            </div>
+        @endif
     </div>
     
     <!-- Pending Payments -->
@@ -179,23 +204,32 @@
             Pending Payments
         </h3>
         
-        <div class="space-y-1">
-            @forelse($pendingPayments as $payment)
-            <div class="flex justify-between items-center py-1 border-b border-white/10">
-                <div>
-                    <p class="text-white text-xs">{{ Str::limit($payment->participant_name, 25) }}</p>
-                    <p class="text-xs text-gray-400">{{ Str::limit($payment->event_title, 30) }}</p>
-                    <p class="text-xs text-gray-500">{{ $payment->invoice_number }}</p>
+        @php $pendingPayments = $pendingPayments ?? collect(); @endphp
+        @if($pendingPayments->count() > 0)
+            <div class="space-y-1">
+                @foreach($pendingPayments as $payment)
+                <div class="flex justify-between items-center py-1 border-b border-white/10">
+                    <div>
+                        <p class="text-white text-xs">{{ Str::limit($payment['participant_name'] ?? 'N/A', 25) }}</p>
+                        <p class="text-xs text-gray-400">{{ Str::limit($payment['event_title'] ?? 'N/A', 30) }}</p>
+                        <p class="text-xs text-gray-500">{{ $payment['invoice_number'] ?? 'N/A' }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-yellow-400 font-semibold text-xs">Rp {{ number_format($payment['amount'] ?? 0, 0, ',', '.') }}</p>
+                        <a href="{{ route('orders.show', $payment['order_id'] ?? 0) }}" class="text-blue-400 hover:text-blue-300 text-xs">Verifikasi</a>
+                    </div>
                 </div>
-                <div class="text-right">
-                    <p class="text-yellow-400 font-semibold text-xs">Rp {{ number_format($payment->amount, 0, ',', '.') }}</p>
-                    <a href="{{ route('orders.show', $payment->order_id) }}" class="text-blue-400 hover:text-blue-300 text-xs">Verifikasi</a>
-                </div>
+                @endforeach
             </div>
-            @empty
-            <p class="text-gray-400 text-center py-3 text-xs">Tidak ada pembayaran pending</p>
-            @endforelse
-        </div>
+        @else
+            <div class="text-center py-6">
+                <svg class="w-12 h-12 mx-auto text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-gray-400 text-sm">Tidak ada pembayaran pending</p>
+                <p class="text-xs text-gray-500">Semua pembayaran sudah terverifikasi</p>
+            </div>
+        @endif
     </div>
 </div>
 
@@ -204,146 +238,176 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Participant Registration Chart
-        const participantCtx = document.getElementById('participantChart').getContext('2d');
-        new Chart(participantCtx, {
-            type: 'line',
-            data: {
-                labels: {!! json_encode(array_column($participantChart, 'month')) !!},
-                datasets: [{
-                    label: 'New Participants',
-                    data: {!! json_encode(array_column($participantChart, 'count')) !!},
-                    borderColor: '#4CAF50',
-                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                    borderWidth: 1.5,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#4CAF50',
-                    pointBorderColor: '#fff',
-                    pointRadius: 3,
-                    pointHoverRadius: 5
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        labels: { color: '#fff', font: { size: 10 } }
-                    },
-                    tooltip: {
-                        titleFont: { size: 11 },
-                        bodyFont: { size: 10 }
-                    }
+        const participantData = @json($participantChart ?? []);
+        const participantCtx = document.getElementById('participantChart');
+        if (participantCtx && participantData && participantData.length > 0) {
+            new Chart(participantCtx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: participantData.map(item => item.month),
+                    datasets: [{
+                        label: 'New Participants',
+                        data: participantData.map(item => item.count),
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        borderWidth: 1.5,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#4CAF50',
+                        pointBorderColor: '#fff',
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255,255,255,0.1)' },
-                        ticks: { color: '#fff', stepSize: 1, font: { size: 9 } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff', font: { size: 10 } }
+                        },
+                        tooltip: {
+                            titleFont: { size: 11 },
+                            bodyFont: { size: 10 }
+                        }
                     },
-                    x: {
-                        grid: { color: 'rgba(255,255,255,0.1)' },
-                        ticks: { color: '#fff', font: { size: 9 } }
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#fff', stepSize: 1, font: { size: 9 } }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#fff', font: { size: 9 } }
+                        }
                     }
                 }
-            }
-        });
+            });
+        } else if (participantCtx) {
+            // Tampilkan pesan jika tidak ada data
+            const ctx = participantCtx.getContext('2d');
+            ctx.fillStyle = '#666';
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Belum ada data participant', participantCtx.width/2, participantCtx.height/2);
+        }
 
         // Revenue Chart
-        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-        new Chart(revenueCtx, {
-            type: 'bar',
-            data: {
-                labels: {!! json_encode(array_column($revenueChart, 'month')) !!},
-                datasets: [{
-                    label: 'Revenue (Rp)',
-                    data: {!! json_encode(array_column($revenueChart, 'revenue')) !!},
-                    backgroundColor: 'rgba(255, 193, 7, 0.7)',
-                    borderColor: '#FFC107',
-                    borderWidth: 1,
-                    borderRadius: 6,
-                    barPercentage: 0.7
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        labels: { color: '#fff', font: { size: 10 } }
-                    },
-                    tooltip: {
-                        titleFont: { size: 11 },
-                        bodyFont: { size: 10 },
-                        callbacks: {
-                            label: function(context) {
-                                return `Revenue: Rp ${context.raw.toLocaleString('id-ID')}`;
-                            }
-                        }
-                    }
+        const revenueData = @json($revenueChart ?? []);
+        const revenueCtx = document.getElementById('revenueChart');
+        if (revenueCtx && revenueData && revenueData.length > 0) {
+            new Chart(revenueCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: revenueData.map(item => item.month),
+                    datasets: [{
+                        label: 'Revenue (Rp)',
+                        data: revenueData.map(item => item.revenue),
+                        backgroundColor: 'rgba(255, 193, 7, 0.7)',
+                        borderColor: '#FFC107',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barPercentage: 0.7
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(255,255,255,0.1)' },
-                        ticks: { 
-                            color: '#fff',
-                            font: { size: 9 },
-                            callback: function(value) {
-                                if (value >= 1000000) return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
-                                if (value >= 1000) return 'Rp ' + (value / 1000).toFixed(0) + 'K';
-                                return 'Rp ' + value;
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#fff', font: { size: 10 } }
+                        },
+                        tooltip: {
+                            titleFont: { size: 11 },
+                            bodyFont: { size: 10 },
+                            callbacks: {
+                                label: function(context) {
+                                    return `Revenue: Rp ${context.raw.toLocaleString('id-ID')}`;
+                                }
                             }
                         }
                     },
-                    x: {
-                        grid: { color: 'rgba(255,255,255,0.1)' },
-                        ticks: { color: '#fff', font: { size: 9 } }
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { 
+                                color: '#fff',
+                                font: { size: 9 },
+                                callback: function(value) {
+                                    if (value >= 1000000) return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
+                                    if (value >= 1000) return 'Rp ' + (value / 1000).toFixed(0) + 'K';
+                                    return 'Rp ' + value;
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#fff', font: { size: 9 } }
+                        }
                     }
                 }
-            }
-        });
+            });
+        } else if (revenueCtx) {
+            const ctx = revenueCtx.getContext('2d');
+            ctx.fillStyle = '#666';
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Belum ada data revenue', revenueCtx.width/2, revenueCtx.height/2);
+        }
 
         // Order Status Distribution Chart
-        const orderStatusCtx = document.getElementById('orderStatusChart').getContext('2d');
-        new Chart(orderStatusCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Pending', 'Paid', 'Free', 'Cancelled'],
-                datasets: [{
-                    data: [
-                        {{ $pendingOrders ?? 0 }},
-                        {{ $paidOrders ?? 0 }},
-                        {{ $freeOrders ?? 0 }},
-                        {{ $cancelledOrders ?? 0 }}
-                    ],
-                    backgroundColor: ['#FFC107', '#4CAF50', '#2196F3', '#F44336'],
-                    borderWidth: 0,
-                    hoverOffset: 8
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { color: '#fff', font: { size: 9 }, boxWidth: 10 }
+        const orderStatusCtx = document.getElementById('orderStatusChart');
+        if (orderStatusCtx) {
+            const totalOrders = {{ ($pendingOrders ?? 0) + ($paidOrders ?? 0) + ($freeOrders ?? 0) + ($cancelledOrders ?? 0) }};
+            if (totalOrders > 0) {
+                new Chart(orderStatusCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Pending', 'Paid', 'Free', 'Cancelled'],
+                        datasets: [{
+                            data: [
+                                {{ $pendingOrders ?? 0 }},
+                                {{ $paidOrders ?? 0 }},
+                                {{ $freeOrders ?? 0 }},
+                                {{ $cancelledOrders ?? 0 }}
+                            ],
+                            backgroundColor: ['#FFC107', '#4CAF50', '#2196F3', '#F44336'],
+                            borderWidth: 0,
+                            hoverOffset: 8
+                        }]
                     },
-                    tooltip: {
-                        titleFont: { size: 11 },
-                        bodyFont: { size: 10 },
-                        callbacks: {
-                            label: function(context) {
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
-                                return `${context.label}: ${context.raw} (${percentage}%)`;
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { color: '#fff', font: { size: 9 }, boxWidth: 10 }
+                            },
+                            tooltip: {
+                                titleFont: { size: 11 },
+                                bodyFont: { size: 10 },
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0;
+                                        return `${context.label}: ${context.raw} (${percentage}%)`;
+                                    }
+                                }
                             }
                         }
                     }
-                }
+                });
+            } else {
+                const ctx = orderStatusCtx.getContext('2d');
+                ctx.fillStyle = '#666';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Belum ada data order', orderStatusCtx.width/2, orderStatusCtx.height/2);
             }
-        });
+        }
     });
 </script>
 @endpush

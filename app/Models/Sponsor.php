@@ -15,6 +15,7 @@ class Sponsor extends Model
         'email',
         'phone',
         'description',
+        'year',
         'tier', // Default tier (fallback)
         'sort_order',
         'is_active'

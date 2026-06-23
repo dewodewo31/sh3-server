@@ -2,7 +2,7 @@
 
 @section('title', 'User Details - ' . $user->name)
 @section('page-title', 'User Details')
-@section('page-description', 'View complete user information')
+@section('page-description', 'View user information and activities')
 
 @section('content')
 <div class="mb-6">
@@ -25,12 +25,8 @@
                     </span>
                 </div>
                 <h2 class="text-2xl font-bold text-white mb-2">{{ $user->name }}</h2>
-                <div class="inline-flex px-3 py-1 rounded-full text-sm font-semibold mb-3
-                    @if($user->role == 'admin') bg-purple-500/20 text-purple-300
-                    @elseif($user->role == 'organizer') bg-yellow-500/20 text-yellow-300
-                    @else bg-blue-500/20 text-blue-300
-                    @endif">
-                    {{ ucfirst($user->role) }}
+                <div class="mb-3">
+                    {!! $user->role_badge !!}
                 </div>
                 <p class="text-gray-400">{{ $user->email }}</p>
             </div>
@@ -69,88 +65,5 @@
         </div>
     </div>
 
-    <!-- User Activity -->
-    <div class="lg:col-span-2 space-y-6">
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-3 gap-4">
-            <div class="bg-white/5 rounded-xl border border-white/10 p-4 text-center">
-                <p class="text-2xl font-bold text-green-400">{{ $user->orders->count() }}</p>
-                <p class="text-xs text-gray-400">Total Orders</p>
-            </div>
-            <div class="bg-white/5 rounded-xl border border-white/10 p-4 text-center">
-                <p class="text-2xl font-bold text-yellow-400">{{ $user->eventsCreated->count() }}</p>
-                <p class="text-xs text-gray-400">Events Created</p>
-            </div>
-            <div class="bg-white/5 rounded-xl border border-white/10 p-4 text-center">
-                <p class="text-2xl font-bold text-blue-400">{{ $user->uploadedGalleries->count() }}</p>
-                <p class="text-xs text-gray-400">Galleries Uploaded</p>
-            </div>
-        </div>
-
-        <!-- Recent Orders -->
-        <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
-                </svg>
-                Recent Orders
-            </h3>
-            
-            @if($user->orders->count() > 0)
-                <div class="space-y-2">
-                    @foreach($user->orders->take(5) as $order)
-                        <div class="bg-white/5 rounded-lg p-3 flex justify-between items-center">
-                            <div>
-                                <p class="font-semibold">{{ $order->invoice_number }}</p>
-                                <p class="text-xs text-gray-400">{{ $order->event->title ?? 'N/A' }}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-semibold text-green-400">Rp {{ number_format($order->total_price, 0, ',', '.') }}</p>
-                                <p class="text-xs text-gray-400">{{ ucfirst($order->status) }}</p>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            @else
-                <p class="text-gray-400 text-center py-4">No orders yet</p>
-            @endif
-        </div>
-
-        <!-- Events Created -->
-        @if($user->role == 'organizer')
-        <div class="bg-gradient-to-br from-white/5 to-white/10 rounded-xl border border-white/10 p-6">
-            <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <svg class="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                </svg>
-                Events Created
-            </h3>
-            
-            @if($user->eventsCreated->count() > 0)
-                <div class="space-y-2">
-                    @foreach($user->eventsCreated->take(5) as $event)
-                        <div class="bg-white/5 rounded-lg p-3 flex justify-between items-center">
-                            <div>
-                                <p class="font-semibold">{{ $event->title }}</p>
-                                <p class="text-xs text-gray-400">{{ $event->start_date->format('d M Y') }}</p>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-xs px-2 py-1 rounded-full
-                                    @if($event->status == 'upcoming') bg-yellow-500/20 text-yellow-300
-                                    @elseif($event->status == 'ongoing') bg-green-500/20 text-green-300
-                                    @else bg-gray-500/20 text-gray-300
-                                    @endif">
-                                    {{ ucfirst($event->status) }}
-                                </span>
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            @else
-                <p class="text-gray-400 text-center py-4">No events created</p>
-            @endif
-        </div>
-        @endif
-    </div>
 </div>
 @endsection

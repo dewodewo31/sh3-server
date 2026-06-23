@@ -6,6 +6,7 @@ use App\Http\Requests\StorePaymentRequest;
 use App\Http\Requests\UpdatePaymentRequest;
 use App\Services\PaymentService\PaymentServiceInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PaymentController extends Controller
 {
@@ -37,7 +38,7 @@ class PaymentController extends Controller
      */
     public function show($id)
     {
-        if (!$this->paymentService->authorizePayment($id)) {
+        if (!$this->authorizePayment($id)) {
             abort(403, 'Tidak diizinkan');
         }
         
@@ -65,7 +66,7 @@ class PaymentController extends Controller
      */
     public function update(UpdatePaymentRequest $request, $id)
     {
-        if (Auth::user()->role !== 'admin') {
+        if (!$this->isAdmin()) {
             abort(403, 'Only admin can update payment');
         }
         
@@ -76,12 +77,12 @@ class PaymentController extends Controller
     }
     
     /**
-     * Verify payment (Admin/Organizer)
+     * Verify payment (Admin/Organizer/Bendahara)
      */
     public function verify(Request $request, $id)
     {
-        if (!$this->paymentService->authorizePayment($id)) {
-            abort(403, 'Tidak diizinkan');
+        if (!$this->canVerifyPayment()) {
+            abort(403, 'Tidak diizinkan - Hanya admin, organizer, atau bendahara yang bisa verifikasi');
         }
         
         $request->validate([
@@ -102,7 +103,7 @@ class PaymentController extends Controller
      */
     public function destroy($id)
     {
-        if (Auth::user()->role !== 'admin') {
+        if (!$this->isAdmin()) {
             abort(403, 'Only admin can delete payment');
         }
         
@@ -110,5 +111,57 @@ class PaymentController extends Controller
 
         return redirect()->route('payments.index')
             ->with('success', 'Payment deleted successfully');
+    }
+
+    /**
+     * Check if user is admin (including all admin roles)
+     */
+    private function isAdmin(): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+        
+        $adminRoles = ['admin', 'admin_full_access', 'admin_laman', 'admin_member', 'admin_bnh'];
+        return in_array($user->role, $adminRoles);
+    }
+
+    /**
+     * Check if user can verify payment
+     */
+    private function canVerifyPayment(): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+        
+        $allowedRoles = ['admin', 'admin_full_access', 'admin_laman', 'organizer', 'bendahara'];
+        return in_array($user->role, $allowedRoles);
+    }
+
+    /**
+     * Authorize payment access
+     */
+    private function authorizePayment($id): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+        
+        // Admin roles have full access
+        if ($this->isAdmin()) return true;
+        
+        // Organizer can only see payments for their events
+        if ($user->role === 'organizer') {
+            $payment = $this->paymentService->getPaymentById($id);
+            if ($payment && $payment->order && $payment->order->event) {
+                return $payment->order->event->created_by === $user->id;
+            }
+            return false;
+        }
+        
+        // Bendahara can see all payments
+        if ($user->role === 'bendahara') {
+            return true;
+        }
+        
+        return false;
     }
 }

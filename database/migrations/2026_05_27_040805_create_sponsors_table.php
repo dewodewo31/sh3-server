@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('email')->nullable();
             $table->string('phone')->nullable();
             $table->text('description')->nullable();
+            $table->string('year')->nullable();
             $table->enum('tier', ['platinum', 'gold', 'silver', 'bronze', 'partner'])->default('bronze');
             $table->integer('sort_order')->default(0);
             $table->boolean('is_active')->default(true);
