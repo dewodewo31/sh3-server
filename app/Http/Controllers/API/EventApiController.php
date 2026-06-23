@@ -234,7 +234,7 @@ class EventApiController extends Controller
             
             if ($attendance) {
                 // Generate ulang QR code jika perlu
-                $qrCodeUrl = route('attendance.scan', $attendance->qr_code);
+                $qrCodeUrl = $attendance->qr_code;
                 $qrCodeSvg = base64_encode(
                     QrCode::format('svg')
                         ->size(300)
@@ -297,7 +297,7 @@ class EventApiController extends Controller
         );
 
         // Generate QR SVG
-        $qrCodeUrl = route('attendance.scan', $attendance->qr_code);
+        $qrCodeUrl = $attendance->qr_code;
 
         $qrCodeSvg = base64_encode(
             QrCode::format('svg')

@@ -61,7 +61,7 @@ class OrderApiController extends Controller
             ];
             
             if ($attendance) {
-                $qrCodeUrl = route('attendance.scan', $attendance->qr_code);
+                $qrCodeUrl = $attendance->qr_code;
                 $qrCodeSvg = base64_encode(
                     QrCode::format('svg')->size(300)->generate($qrCodeUrl)
                 );
@@ -112,7 +112,7 @@ class OrderApiController extends Controller
         );
 
         // Generate QR code image
-        $qrCodeUrl = route('attendance.scan', $attendance->qr_code);
+        $qrCodeUrl = $attendance->qr_code;
         $qrCodeSvg = base64_encode(
             QrCode::format('svg')->size(300)->generate($qrCodeUrl)
         );
