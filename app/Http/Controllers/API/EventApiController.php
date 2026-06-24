@@ -86,6 +86,7 @@ class EventApiController extends Controller
                 'website' => $sponsor->website,
                 'email' => $sponsor->email,
                 'phone' => $sponsor->phone,
+                'year' => $sponsor->year,
                 'description' => $sponsor->description,
                 'tier' => $sponsor->tier,
                 'sort_order' => $sponsor->sort_order,
@@ -443,6 +444,7 @@ class EventApiController extends Controller
                 'slug' => $sponsor->slug,
                 'logo_url' => $sponsor->logo ? asset('storage/' . $sponsor->logo) : null, // ← ini
                 'website' => $sponsor->website,
+                'year' => $sponsor->year,
                 'tier' => $sponsor->tier,
                 'sort_order' => $sponsor->sort_order,
                 'is_active' => $sponsor->is_active,
