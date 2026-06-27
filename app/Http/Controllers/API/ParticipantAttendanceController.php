@@ -77,7 +77,7 @@ class ParticipantAttendanceController extends Controller
         $order = Order::with(['event', 'attendance'])
             ->where('participant_id', $participant->id)
             ->where('event_id', $eventId)
-            ->whereIn('status', ['paid', 'free'])
+            ->whereIn('status', ['paid', 'free'])   
             ->first();
         
         if (!$order) {
@@ -242,7 +242,7 @@ class ParticipantAttendanceController extends Controller
                 'event_title' => $order->event->title,
                 'has_attendance' => !is_null($attendance),
                 'qr_code' => $attendance ? $attendance->qr_code : null,
-                'check_in_time' => $attendance?->check_in_time?->toISOString(),
+                'check_in_time' => $attendance?->check_in_time?->toISOString(), 
                 'check_out_time' => $attendance?->check_out_time?->toISOString(),
                 'status' => $attendance?->status ?? 'pending',
                 'can_check_out' => $attendance ? $attendance->canCheckOut() : false,
@@ -294,5 +294,129 @@ class ParticipantAttendanceController extends Controller
                 'total' => $attendances->total()
             ]
         ]);
+    }
+
+    /**
+     * Universal Scanner API untuk Aplikasi Mobile (Flutter)
+     * Bisa dipanggil via GET /scan/{qrCode} atau POST /check-in dengan Body {"qr_code": "..."}
+     */
+    public function scan(Request $request, $qrCode = null)
+    {
+        // 1. Tangkap input (Prioritaskan dari parameter URL, jika kosong ambil dari Body JSON)
+        $rawInput = $qrCode ?? $request->input('qr_code') ?? $request->input('member_id');
+
+        if (!$rawInput) {
+            return response()->json([
+                'success' => false,
+                'message' => 'QR Code atau Member ID wajib dikirimkan'
+            ], 400);
+        }
+
+        // 2. Bersihkan input jika yang ter-scan adalah Full URL
+        $cleanCode = trim($rawInput);
+        if (str_starts_with($cleanCode, 'http')) {
+            $pathSegments = explode('/', parse_url($cleanCode, PHP_URL_PATH));
+            $cleanCode = end($pathSegments);
+        }
+
+        // 3. Cari attendance berdasarkan kode murni atau Hash ID Pelari
+        $attendance = Attendance::where('qr_code', $cleanCode)
+            ->orWhereHas('participant', function ($q) use ($cleanCode) {
+                $q->where('hash_id', $cleanCode);
+            })->first();
+
+        if (!$attendance) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tiket tidak ditemukan atau belum dibayar lunas'
+            ], 404);
+        }
+
+        $event = $attendance->event;
+        $participant = $attendance->participant;
+
+        // ========== VALIDASI JADWAL EVENT ==========
+
+        if ($event->end_date < now()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Event '{$event->title}' sudah selesai.",
+                'data' => [
+                    'participant_name' => $participant->name,
+                    'event_status' => 'finished'
+                ]
+            ], 400);
+        }
+
+        if ($event->start_date > now()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Event belum dimulai. Jadwal: {$event->start_date->format('d M Y H:i')} WIB",
+                'data' => [
+                    'participant_name' => $participant->name,
+                    'event_status' => 'upcoming'
+                ]
+            ], 400);
+        }
+
+        // ========== PROSES CHECK-IN & CHECK-OUT ==========
+
+        // SKENARIO A: CHECK-IN (POS BERANGKAT)
+        if (!$attendance->check_in_time) {
+            $attendance->update([
+                'check_in_time' => now(),
+                'status' => 'checked_in',
+                'check_in_ip' => $request->ip()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "BERHASIL CHECK-IN: {$participant->name}",
+                'data' => [
+                    'participant_name' => $participant->name,
+                    'hash_id' => $participant->hash_id ?? '-',
+                    'event_name' => $event->title,
+                    'check_in_time' => $attendance->check_in_time->toISOString(),
+                    'status' => 'checked_in'
+                ]
+            ], 200);
+        }
+
+        // SKENARIO B: CHECK-OUT (GARIS FINISH)
+        if (!$attendance->check_out_time) {
+            if (!$attendance->canCheckOut()) {
+                $remaining = $attendance->getRemainingMinutesBeforeCheckout();
+                return response()->json([
+                    'success' => false,
+                    'message' => "Pelari baru bisa check-out dalam {$remaining} menit lagi.",
+                    'data' => ['remaining_minutes' => $remaining]
+                ], 400);
+            }
+
+            $attendance->update([
+                'check_out_time' => now(),
+                'status' => 'checked_out',
+                'check_out_ip' => $request->ip()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "FINISH! CHECK-OUT: {$participant->name}",
+                'data' => [
+                    'participant_name' => $participant->name,
+                    'hash_id' => $participant->hash_id ?? '-',
+                    'event_name' => $event->title,
+                    'check_in_time' => $attendance->check_in_time->toISOString(),
+                    'check_out_time' => $attendance->check_out_time->toISOString(),
+                    'status' => 'checked_out'
+                ]
+            ], 200);
+        }
+
+        // SKENARIO C: SUDAH SELESAI SEMUA
+        return response()->json([
+            'success' => false,
+            'message' => "Peserta {$participant->name} sudah menyelesaikan trek ini sebelumnya."
+        ], 400);
     }
 }

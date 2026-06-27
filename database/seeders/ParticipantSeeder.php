@@ -148,6 +148,7 @@ class ParticipantSeeder extends Seeder
                 'status' => 'active',
                 'notes' => 'Casual participant'
             ],
+        
         ];
 
         // ==================== CREATE MEMBERS ====================

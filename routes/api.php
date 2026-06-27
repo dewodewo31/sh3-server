@@ -122,4 +122,8 @@ Route::prefix('v1')->group(function () {
         // History
         Route::get('/attendance-history', [ParticipantAttendanceController::class, 'attendanceHistory']);
     });
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/attendance/scan/{qrCode?}', [ParticipantAttendanceController::class, 'scan']);
+    });
 });
