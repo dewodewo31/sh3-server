@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\EventApiController;
 use App\Http\Controllers\Api\OrderApiController;
 use App\Http\Controllers\Api\CategoryApiController;
 use App\Http\Controllers\Api\MerchandiseApiController;
+use App\Http\Controllers\Api\OrganisationApiController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ParticipantAttendanceController;
 
@@ -79,6 +80,22 @@ Route::prefix('v1')->group(function () {
             Route::post('/orders/{id}/upload-payment', [MerchandiseApiController::class, 'uploadPaymentProof']);
             Route::get('/orders/{id}/payment-status', [MerchandiseApiController::class, 'getPaymentStatus']);
         });
+    });
+
+    // ==================== ORGANISATION HIERARCHY ====================
+    Route::prefix('organisations')->controller(OrganisationApiController::class)->group(function () {
+        // All routes are public (read only)
+        Route::get('/', 'index');                                    // List all hierarchies
+        Route::get('/tree', 'tree');                                 // Tree structure
+        Route::get('/years', 'getYears');                            // Available years
+        Route::get('/stats', 'getStats');                            // Statistics
+        Route::get('/levels', 'getLevels');                          // Available levels
+        Route::get('/search', 'search');                             // Search
+        Route::get('/year/{year}', 'getByYear');                     // By year
+        Route::get('/level/{level}', 'getByLevel');                  // By level
+        Route::get('/{id}', 'show');                                 // Detail
+        Route::get('/{id}/holders', 'getHolders');                   // Holders by hierarchy
+        Route::get('/holders/{id}', 'getHolder');                    // Holder detail
     });
     
     // ==================== PUBLIC ====================

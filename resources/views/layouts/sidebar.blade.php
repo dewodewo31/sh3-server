@@ -53,6 +53,7 @@
     $canManageParticipants = $fullAccess || $userRole === 'admin_member';
     $canManageUsers = $fullAccess;
     $canManageGallery = $fullAccess || $isOrganizer;
+    $canManageOrganisation = $fullAccess || $isOrganizer || $isAdmin;
 @endphp 
 
         <!-- Dashboard - All roles can see -->
@@ -190,6 +191,17 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5H3.75A2.25 2.25 0 001.5 6.75v12A2.25 2.25 0 003.75 21zM14.25 8.25a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
             </svg>
             <span class="text-sm">Gallery</span>
+        </a>
+        @endif
+
+        <!-- Organisation Structure - visible to full access + organizer -->
+        @if($canManageOrganisation)
+        <a href="{{ route('organization.index') }}"
+           class="flex items-center gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg hover:bg-green-500/20 hover:text-green-300 transition group {{ request()->routeIs('organisations.*') ? 'bg-green-500/20 text-green-300' : '' }}">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-green-300 transition" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            <span class="text-sm">Organization</span>
         </a>
         @endif
 

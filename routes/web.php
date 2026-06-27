@@ -11,6 +11,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\EventGalleryController;
 use App\Http\Controllers\MerchandiseController;
 use App\Http\Controllers\MerchandiseOrderController;
+use App\Http\Controllers\OrganizationHierarchyController;
 use App\Http\Controllers\ParticipantController;
 use App\Http\Controllers\SponsorController;
 use App\Http\Controllers\UserController;
@@ -102,6 +103,18 @@ Route::middleware(['auth', 'role:admin,admin_full_access,admin_laman'])->group(f
     Route::get('events/{event}/attendance/export', [AttendanceController::class, 'export'])->name('attendance.export');
     Route::get('events/{event}/export-brochure', [EventController::class, 'exportBrochurePdf'])->name('events.export-brochure');
     Route::get('events/export/all/pdf', [EventController::class, 'exportAllPdf'])->name('events.export-all-pdf');
+
+    Route::prefix('organization')->name('organization.')->group(function () {
+        Route::get('/', [OrganizationHierarchyController::class, 'index'])->name('index');
+        Route::get('/create', [OrganizationHierarchyController::class, 'create'])->name('create');
+        Route::post('/', [OrganizationHierarchyController::class, 'store'])->name('store');
+        Route::get('/{id}', [OrganizationHierarchyController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [OrganizationHierarchyController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [OrganizationHierarchyController::class, 'update'])->name('update');
+        Route::delete('/{id}', [OrganizationHierarchyController::class, 'destroy'])->name('destroy');
+        Route::get('/{id}/duplicate', [OrganizationHierarchyController::class, 'duplicate'])->name('duplicate');
+        Route::post('/duplicate-year', [OrganizationHierarchyController::class, 'duplicateYear'])->name('duplicate-year');
+    });
 });
 
 /*
