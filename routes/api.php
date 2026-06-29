@@ -63,24 +63,22 @@ Route::prefix('v1')->group(function () {
     });
 
     // ==================== MERCHANDISE ====================
-    Route::prefix('merchandise')->group(function () {
-        // Public routes
-        Route::get('/', [MerchandiseApiController::class, 'index']);
-        Route::get('/categories', [MerchandiseApiController::class, 'categories']);
-        Route::get('/{id}', [MerchandiseApiController::class, 'show']);
-        
-        // Protected routes
-        Route::middleware('auth:sanctum')->group(function () {
-            Route::post('/merchandise/order', [MerchandiseApiController::class, 'createOrder']);
-            Route::get('/merchandise/my-orders', [MerchandiseApiController::class, 'myOrders']);
-            Route::get('/merchandise/orders/{id}', [MerchandiseApiController::class, 'orderDetail']);
-            Route::post('/merchandise/orders/{id}/cancel', [MerchandiseApiController::class, 'cancelOrder']);
-            
-            // ========== NEW: PAYMENT PROOF ROUTES ==========
-            Route::post('/merchandise/orders/{id}/upload-payment', [MerchandiseApiController::class, 'uploadPaymentProof']);
-            Route::get('/merchandise/orders/{id}/payment-status', [MerchandiseApiController::class, 'getPaymentStatus']);
-        });
+Route::prefix('merchandise')->group(function () {
+    // Public routes
+    Route::get('/', [MerchandiseApiController::class, 'index']);
+    Route::get('/categories', [MerchandiseApiController::class, 'categories']);
+    Route::get('/{id}', [MerchandiseApiController::class, 'show']);
+    
+    // Protected routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/order', [MerchandiseApiController::class, 'createOrder']);
+        Route::get('/my-orders', [MerchandiseApiController::class, 'myOrders']);
+        Route::get('/orders/{id}', [MerchandiseApiController::class, 'orderDetail']);
+        Route::post('/orders/{id}/cancel', [MerchandiseApiController::class, 'cancelOrder']);
+        Route::post('/orders/{id}/upload-payment', [MerchandiseApiController::class, 'uploadPaymentProof']);
+        Route::get('/orders/{id}/payment-status', [MerchandiseApiController::class, 'getPaymentStatus']);
     });
+});
 
     // ==================== ORGANISATION HIERARCHY ====================
     Route::prefix('organisations')->controller(OrganisationApiController::class)->group(function () {
