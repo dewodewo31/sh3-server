@@ -145,7 +145,7 @@
 
 <!-- Pagination -->
 @if($categories->hasPages())
-    <div class="mt-8">
+    <div class="mt-8 text-black">
         {{ $categories->links() }}
     </div>
 @endif

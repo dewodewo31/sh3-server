@@ -221,7 +221,7 @@
     <div class="space-y-6">
         @if($order->status == 'pending' && $order->total_price > 0)
         <!-- Verification Card for Pending Payment -->
-        <div class="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl border border-yellow-500/30 p-6 sticky top-6">
+        <div class="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 rounded-xl border border-yellow-500/30 p-6 top-6">
             <h3 class="text-lg font-bold text-yellow-400 mb-4 flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

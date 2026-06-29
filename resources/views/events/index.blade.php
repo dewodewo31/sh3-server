@@ -143,7 +143,7 @@
 
 <!-- Pagination -->
 @if($events->hasPages())
-<div class="mt-6">
+<div class="mt-6 text-black">
     {{ $events->links() }}
 </div>
 @endif

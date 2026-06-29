@@ -32,7 +32,7 @@
         <div class="flex gap-2">
             <form action="{{ route('merchandise.orders.update-status', $order) }}" method="POST" class="inline">
                 @csrf
-                <select name="status" onchange="this.form.submit()" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">
+            <select name="status" onchange="this.form.submit()" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">
                     <option class="text-black" value="pending" {{ $order->status == 'pending' ? 'selected' : '' }}>Pending</option>
                     <option class="text-black" value="paid" {{ $order->status == 'paid' ? 'selected' : '' }}>Paid</option>
                     <option class="text-black" value="processing" {{ $order->status == 'processing' ? 'selected' : '' }}>Processing</option>

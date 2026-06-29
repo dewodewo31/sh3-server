@@ -272,4 +272,78 @@ class EventController extends Controller
             abort(403, 'Tidak diizinkan');
         }
     }
+    /**
+     * Export all events to PDF
+     */
+    public function exportAllPdf()
+    {
+        $user = Auth::user();
+        
+        // Ambil data events sesuai role
+        if ($user->role === 'admin_all_access') {
+            $events = Event::where('created_by', $user->id)->get();
+        } else {
+            $events = Event::with(['category', 'orders'])->get();
+        }
+        
+        // Hitung statistik
+        $totalEvents = $events->count();
+        $upcomingCount = $events->filter(fn($e) => $e->status == 'upcoming')->count();
+        $ongoingCount = $events->filter(fn($e) => $e->status == 'ongoing')->count();
+        $finishedCount = $events->filter(fn($e) => $e->status == 'finished')->count();
+        $totalParticipants = $events->sum(fn($e) => $e->orders()->count());
+        $totalRevenue = $events->sum(fn($e) => $e->orders()->sum('total_price'));
+        
+        // Load view untuk PDF
+        $pdf = \PDF::loadView('exports.events-all', compact(
+            'events', 
+            'totalEvents', 
+            'upcomingCount', 
+            'ongoingCount', 
+            'finishedCount', 
+            'totalParticipants', 
+            'totalRevenue'
+        ));
+        
+        return $pdf->download('all-events-report.pdf');
+    }
+    /**
+     * Export brochure for a specific event to PDF
+     */
+    public function exportBrochurePdf(Event $event)
+    {
+        $this->authorizeEvent($event);
+        
+        $event->load(['category', 'sponsors', 'merchandise']);
+        
+        // Cek kolom yang ada di tabel orders
+        // Sesuaikan dengan nama kolom status pembayaran yang sebenarnya
+        $participantCount = $event->orders()->count(); // Sementara hitung semua
+        
+        // Jika ada kolom status, gunakan ini:
+        // $participantCount = $event->orders()->where('status', 'paid')->count();
+        // atau
+        // $participantCount = $event->orders()->where('payment_status', 1)->count();
+        
+        // Untuk progress bar
+        $registeredCount = $event->orders()->count();
+        $remainingQuota = max(0, $event->quota - $registeredCount);
+        
+        // Hitung status event
+        $now = now();
+        if ($event->start_date > $now) {
+            $event->status = 'upcoming';
+        } elseif ($event->end_date < $now) {
+            $event->status = 'finished';
+        } else {
+            $event->status = 'ongoing';
+        }
+        
+        return view('exports.event-brochure', compact(
+            'event', 
+            'participantCount',
+            'registeredCount',
+            'remainingQuota'
+        ));
+    }
 }
