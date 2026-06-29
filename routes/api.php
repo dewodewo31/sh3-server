@@ -1,14 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\EventApiController;
-use App\Http\Controllers\Api\OrderApiController;
-use App\Http\Controllers\Api\CategoryApiController;
-use App\Http\Controllers\Api\MerchandiseApiController;
-use App\Http\Controllers\Api\OrganisationApiController;
-use App\Http\Controllers\Api\ProfileController;
-use App\Http\Controllers\Api\ParticipantAttendanceController;
+use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\EventApiController;
+use App\Http\Controllers\API\OrderApiController;
+use App\Http\Controllers\API\CategoryApiController;
+use App\Http\Controllers\API\MerchandiseApiController;
+use App\Http\Controllers\API\OrganisationApiController;
+use App\Http\Controllers\API\ProfileController;
+use App\Http\Controllers\API\ParticipantAttendanceController;
 
 /*
 |--------------------------------------------------------------------------
