@@ -210,7 +210,7 @@
 
 <!-- Pagination -->
 @if($orders->hasPages())
-<div class="mt-6">
+<div class="mt-6 text-black">
     {{ $orders->appends(request()->query())->links() }}
 </div>
 @endif
