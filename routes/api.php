@@ -54,7 +54,6 @@ Route::prefix('v1')->group(function () {
     // ==================== ORDERS & TICKETS ====================
     Route::controller(OrderApiController::class)->middleware('auth:sanctum')->group(function () {
         Route::post('/orders', 'store');
-        Route::get('/my-orders', 'myOrders');
         Route::get('/orders/{id}', 'show');
         Route::post('/orders/{id}/upload-payment', 'uploadPaymentProof');
         Route::post('/orders/{id}/cancel', 'cancel');
