@@ -70,9 +70,9 @@
 <div class="mb-6">
     <form method="GET" action="{{ route('merchandise.index') }}" class="flex flex-wrap gap-3">
         <select name="category" class="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white">
-            <option value="">All Categories</option>
+            <option class="text-black" value="">All Categories</option>
             @foreach($categories as $cat)
-                <option value="{{ $cat }}" {{ request('category') == $cat ? 'selected' : '' }}>
+                <option class="text-black" value="{{ $cat }}" {{ request('category') == $cat ? 'selected' : '' }}>
                     {{ ucfirst($cat) }}
                 </option>
             @endforeach
@@ -190,7 +190,7 @@
 
 <!-- Pagination -->
 @if($merchandise->hasPages())
-<div class="mt-6">
+<div class="mt-6 text-black">
     {{ $merchandise->links() }}
 </div>
 @endif

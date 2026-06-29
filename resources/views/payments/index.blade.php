@@ -198,7 +198,7 @@
 
 <!-- Pagination -->
 @if($payments->hasPages())
-    <div class="mt-6">
+    <div class="mt-6 text-black">
         {{ $payments->appends(request()->query())->links() }}
     </div>
 @endif
