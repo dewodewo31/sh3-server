@@ -233,7 +233,7 @@ class AttendanceController extends Controller
         $event = Event::findOrFail($eventId);
         
         // Authorize: hanya admin atau owner event
-        if (Auth::user()->role !== 'admin' && $event->created_by !== Auth::id()) {
+        if (Auth::user()->role !== 'admin_full_access' && $event->created_by !== Auth::id()) {
             abort(403);
         }
         

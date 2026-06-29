@@ -36,6 +36,12 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
+     Route::get('attendance/{eventId}/qrcode', [AttendanceController::class, 'showQrCode'])->name('attendance.qrcode');
+    Route::get('attendance/scanner', [AttendanceController::class, 'scanner'])->name('attendance.scanner');
+    Route::get('attendance/scan/{qrCode}', [AttendanceController::class, 'scan'])->name('attendance.scan');
+    Route::get('attendance/status/{qrCode}', [AttendanceController::class, 'getStatus'])->name('attendance.status');
+    Route::get('events/{event}/attendance', [AttendanceController::class, 'eventAttendance'])->name('attendance.event-list');
+    Route::get('events/{event}/attendance/export', [AttendanceController::class, 'export'])->name('attendance.export');
 });
 
 /*
@@ -94,15 +100,6 @@ Route::middleware(['auth', 'role:admin,admin_full_access,admin_laman'])->group(f
     });
     
     Route::resource('users', UserController::class);
-    
-    Route::get('attendance/{eventId}/qrcode', [AttendanceController::class, 'showQrCode'])->name('attendance.qrcode');
-    Route::get('attendance/scanner', [AttendanceController::class, 'scanner'])->name('attendance.scanner');
-    Route::get('attendance/scan/{qrCode}', [AttendanceController::class, 'scan'])->name('attendance.scan');
-    Route::get('attendance/status/{qrCode}', [AttendanceController::class, 'getStatus'])->name('attendance.status');
-    Route::get('events/{event}/attendance', [AttendanceController::class, 'eventAttendance'])->name('attendance.event-list');
-    Route::get('events/{event}/attendance/export', [AttendanceController::class, 'export'])->name('attendance.export');
-    Route::get('events/{event}/export-brochure', [EventController::class, 'exportBrochurePdf'])->name('events.export-brochure');
-    Route::get('events/export/all/pdf', [EventController::class, 'exportAllPdf'])->name('events.export-all-pdf');
 
     Route::prefix('organization')->name('organization.')->group(function () {
         Route::get('/', [OrganizationHierarchyController::class, 'index'])->name('index');
@@ -139,12 +136,7 @@ Route::middleware(['auth', 'role:organizer,admin_full_access'])->group(function 
     Route::get('events/export/all/pdf', [EventController::class, 'exportAllPdf'])->name('events.export-all-pdf');
     Route::get('merchandise', [MerchandiseController::class, 'index'])->name('merchandise.index');
     Route::get('merchandise/{merchandise}', [MerchandiseController::class, 'show'])->name('merchandise.show');
-    Route::get('attendance/{eventId}/qrcode', [AttendanceController::class, 'showQrCode'])->name('attendance.qrcode');
-    Route::get('attendance/scanner', [AttendanceController::class, 'scanner'])->name('attendance.scanner');
-    Route::get('attendance/scan/{qrCode}', [AttendanceController::class, 'scan'])->name('attendance.scan');
-    Route::get('attendance/status/{qrCode}', [AttendanceController::class, 'getStatus'])->name('attendance.status');
-    Route::get('events/{event}/attendance', [AttendanceController::class, 'eventAttendance'])->name('attendance.event-list');
-    Route::get('events/{event}/attendance/export', [AttendanceController::class, 'export'])->name('attendance.export');
+    // HAPUS semua route attendance dari sini karena sudah dipindahkan ke group terpisah
 });
 
 /*

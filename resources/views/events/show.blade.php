@@ -122,7 +122,7 @@
 
                     <!-- ========== TOMBOL SCANNER (UNTUK ADMIN/ORGANIZER) ========== -->
                     @if (auth()->user() &&
-                            (auth()->user()->role === 'admin' ||
+                            (auth()->user()->role === 'admin_full_access' ||
                                 (auth()->user()->role === 'organizer' && $event->created_by === auth()->id())))
                         <a href="{{ route('attendance.scanner') }}?event_id={{ $event->id }}"
                             class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
@@ -136,19 +136,19 @@
                         </a>
                     @endif
 
-                    <!-- ========== TOMBOL ATTENDANCE LIST (UNTUK ADMIN/ORGANIZER) ========== -->
-                    @if (auth()->user() &&
-                            (auth()->user()->role === 'admin' ||
-                                (auth()->user()->role === 'organizer' && $event->created_by === auth()->id())))
-                        <a href="{{ route('attendance.event-list', $event) }}"
-                            class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                            </svg>
-                            Attendance List
-                        </a>
-                    @endif
+<!-- ========== TOMBOL ATTENDANCE LIST ========== -->
+@if (auth()->user() &&
+        (auth()->user()->role === 'admin_full_access' ||
+            (auth()->user()->role === 'organizer' && $event->created_by === auth()->id())))
+    <a href="{{ route('attendance.event-list', $event) }}"
+        class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+        Attendance List
+    </a>
+@endif
                 </div>
             </div>
         </div>
