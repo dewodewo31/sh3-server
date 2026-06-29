@@ -301,7 +301,7 @@
 
         @elseif($order->status == 'cancelled')
         <!-- Cancelled Info Card -->
-        <div class="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-xl border border-red-500/30 p-6 sticky top-6">
+        <div class="bg-gradient-to-br from-red-500/10 to-red-600/10 rounded-xl border border-red-500/30 p-6 top-6">
             <div class="text-center">
                 <svg class="w-16 h-16 mx-auto mb-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
