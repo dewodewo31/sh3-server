@@ -54,6 +54,7 @@ Route::prefix('v1')->group(function () {
     // ==================== ORDERS & TICKETS ====================
     Route::controller(OrderApiController::class)->middleware('auth:sanctum')->group(function () {
         Route::post('/orders', 'store');
+        Route::get('/my-orders', 'myOrders');
         Route::get('/orders/{id}', 'show');
         Route::post('/orders/{id}/upload-payment', 'uploadPaymentProof');
         Route::post('/orders/{id}/cancel', 'cancel');
@@ -70,14 +71,14 @@ Route::prefix('v1')->group(function () {
         
         // Protected routes
         Route::middleware('auth:sanctum')->group(function () {
-            Route::post('/order', [MerchandiseApiController::class, 'createOrder']);
-            Route::get('/my-orders', [MerchandiseApiController::class, 'myOrders']);
-            Route::get('/orders/{id}', [MerchandiseApiController::class, 'orderDetail']);
-            Route::post('/orders/{id}/cancel', [MerchandiseApiController::class, 'cancelOrder']);
+            Route::post('/merchandise/order', [MerchandiseApiController::class, 'createOrder']);
+            Route::get('/merchandise/my-orders', [MerchandiseApiController::class, 'myOrders']);
+            Route::get('/merchandise/orders/{id}', [MerchandiseApiController::class, 'orderDetail']);
+            Route::post('/merchandise/orders/{id}/cancel', [MerchandiseApiController::class, 'cancelOrder']);
             
             // ========== NEW: PAYMENT PROOF ROUTES ==========
-            Route::post('/orders/{id}/upload-payment', [MerchandiseApiController::class, 'uploadPaymentProof']);
-            Route::get('/orders/{id}/payment-status', [MerchandiseApiController::class, 'getPaymentStatus']);
+            Route::post('/merchandise/orders/{id}/upload-payment', [MerchandiseApiController::class, 'uploadPaymentProof']);
+            Route::get('/merchandise/orders/{id}/payment-status', [MerchandiseApiController::class, 'getPaymentStatus']);
         });
     });
 
